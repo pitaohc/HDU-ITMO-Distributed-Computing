@@ -20,11 +20,12 @@
 #define BUFFER_SIZE 512
 
 int get_proc_count(char** argv);
-int send_msg(PipesCommunication* comm, MessageType type);
-int recieve_msgs(PipesCommunication* comm, MessageType type);
+int send_msg(PipesCommunication* comm, MessageType type); //发送消息
+int recieve_msgs(PipesCommunication* comm, MessageType type); //接收消息
 
 /**
- * @return -1 on invalid arguments, -2 on fork error, 0 on success
+ * @return  -1 无效参数, -2 fork失败, 0成功
+ * 
  */
 int main(int argc, char** argv){
 	size_t i;
@@ -35,10 +36,10 @@ int main(int argc, char** argv){
 	int* pipes;
 	PipesCommunication* comm;
 	
-	/* Resolving program arguments */
+	/* 解析程序参数 */
 	switch(argc){
 		case 1:
-			proc_count = 1; /* TODO: set new default value */
+			proc_count = 1; /* TODO: 设置默认程序 */
 			break;
 		case 3:
 			proc_count = get_proc_count(argv);
@@ -52,29 +53,29 @@ int main(int argc, char** argv){
 			return -1;
 	}
 	
-	/* Initialize log files */
+	/* 初始化日志 */
 	log_init();
 	
-	/* Allocate memory for children */
+	/* 为子进程分配内存 */
 	children = malloc(sizeof(pid_t) * proc_count);
 	
-	/* Open pipes for all processes */
+	/* 为所有进程打开管道 */
 	pipes = pipes_init(proc_count + 1);
 	
-	/* Create children processes */
+	/* 创建子进程 */
 	for (i = 0; i < proc_count; i++){
 		fork_id = fork();
 		if (fork_id < 0){
 			return -2;
 		}
-		else if (fork_id == 0){
+		else if (fork_id == 0){ //代表子进程
 			free(children);
 			break;
 		}
-		children[i] = fork_id;
+		children[i] = fork_id; //记录id
 	}
 	
-	/* Set current process id */
+	/* 设置当前id */
 	if (fork_id == 0){
 		current_proc_id = i + 1;
 	}
@@ -86,35 +87,35 @@ int main(int argc, char** argv){
 	comm = communication_init(pipes, proc_count + 1, current_proc_id);
 	log_pipes(comm);
 	
-	/* Send & recieve started message */
+	/* 发送和接收开始消息 */
 	if (current_proc_id != PARENT_ID){
 		send_msg(comm, STARTED);
 	}
 	recieve_msgs(comm, STARTED);
 	
-	/* Send & recieve done message */
+	/* 发送和接收结束消息 */
 	if (current_proc_id != PARENT_ID){
 		send_msg(comm, DONE);
 	}
 	recieve_msgs(comm, DONE);
 	
-	/* Waiting for all children if parent process */
+	/* 如果父进程等待所有子进程 */
 	if (current_proc_id == PARENT_ID){
 		for (i = 0; i < proc_count; i++){
 			waitpid(children[i], NULL, 0);
 		}
 	}
 	
-	log_destroy();
+	log_destroy(); //记录删除消息
 	communication_destroy(comm);
 	return 0;
 }
 
-/** Get process count from command line arguments.
+/** 从命令行参数得到进程数量
  *
- * @param argv		Double char array containing command line arguments.
+ * @param argv		包含命令行参数的双字符数组
  *
- * @return -1 on error, any other values on success.
+ * @return -1 错误, 其他值表示后面的参数.
  */
 int get_proc_count(char** argv){
 	if (!strcmp(argv[1], "-p")){
@@ -123,16 +124,16 @@ int get_proc_count(char** argv){
 	return -1;
 }
 
-/** Send message to all other processes
+/** 发送消息给其他所有进程
  *
- * @param comm		Pointer to PipesCommunication
- * @param type		Message type: STARTED / DONE
+ * @param comm		通信管道指针
+ * @param type		消息类型: STARTED / DONE
  *
- * @return -1 on incorrect type, -2 on internal error, -3 on sending message error, 0 on success.
+ * @return -1 on 不正确的类型, -2 on 内部错误, -3 on 发送错误, 0 on 成功.
  */
 int send_msg(PipesCommunication* comm, MessageType type){
-	Message msg;
-	uint16_t length = 0;
+	Message msg; //消息体
+	uint16_t length = 0; //长度
 	char buf[BUFFER_SIZE];
     msg.s_header.s_magic = MESSAGE_MAGIC;
     msg.s_header.s_type = type;
@@ -165,12 +166,12 @@ int send_msg(PipesCommunication* comm, MessageType type){
 	return 0;
 }
 
-/** Receive messages from other processes
+/** 从其他进程接收消息
  *
- * @param comm		Pointer to PipesCommunication
- * @param type		Message type: STARTED / DONE
+ * @param comm		通信管道指针
+ * @param type		消息类型: STARTED / DONE
  *
- * @return -1 on recieving message error, 0 on success.
+ * @return -1 接收消息错误, 0 成功.
  */
 int recieve_msgs(PipesCommunication* comm, MessageType type){
 	Message msg;
