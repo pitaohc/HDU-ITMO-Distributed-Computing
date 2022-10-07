@@ -1,0 +1,9 @@
+# temp file
+*.o
+*.log
+
+# idea project file
+**/.idea/
+
+# executable file
+/pa[1-5]/pa[1-5]
