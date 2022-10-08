@@ -16,7 +16,6 @@
 #define SUCCESS 0
 
 int get_proc_count(int argc, char** argv);
-balance_t get_proc_balance(local_id proc_id, char** argv);
 
 int parent_handler(PipesCommunication* comm);
 int child_handler(PipesCommunication* comm);
@@ -27,99 +26,104 @@ void update_history(BalanceState* state, BalanceHistory* history, balance_t amou
 /**
  * @return -1 on invalid arguments, -2 on fork error, 0 on success
  */
-int main(int argc, char** argv){
+int main(int argc, char** argv)
+{
 	size_t i;
-	int proc_count;
+	int child_count;
 	int* pipes;
 	pid_t* children;
 	pid_t fork_id;
 	local_id current_proc_id;
 	PipesCommunication* comm;
 	
-	/* Check args */
-	if (argc < 4 || (proc_count = get_proc_count(argc, argv)) == -1){
+	// 检查参数
+	if (argc < 4 || (child_count = get_proc_count(argc, argv)) == -1)
+	{
 		fprintf(stderr, "Usage: %s -p X y1 y2 ... yX\n", argv[0]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	
-	/* Initialize log files */
+	// 初始化日志
 	log_init();
 	
-	/*  */
-	children = malloc(sizeof(pid_t) * proc_count);
+	// 分配内存
+	children = malloc(sizeof(pid_t) * child_count);
 	
-	/* Open pipes for all processes */
-	pipes = pipes_init(proc_count + 1);
+	// 为所有进程打开管道
+	pipes = pipes_init(child_count + 1);
 	
-	/* Create children processes */
-	for (i = 0; i < proc_count; i++){
+	// 创建子进程
+	for (i = 0; i < child_count; i++)
+	{
 		fork_id = fork();
-		if (fork_id < 0){
+		if (fork_id < 0)
+		{
 			return ERROR_FORK;
 		}
-		else if (!fork_id){
+		else if (!fork_id)
+		{
 			free(children);
 			break;
 		}
 		children[i] = fork_id;
 	}
 	
-	/* Set current process id */
-	if (!fork_id){
-		current_proc_id = i + 1;
-	}
-	else{
-		current_proc_id = PARENT_ID;
-	}
+	// 设置当前进程ID
+	current_proc_id = (fork_id == 0) i + 1 : PARENT_ID;
+
 	
-	/* Set pipe fds to process params */
-	comm = communication_init(pipes, proc_count + 1, current_proc_id, get_proc_balance(current_proc_id, argv));
+	// 为进程设置管道fds  */
+	balance_t balance = atoi(argv[proc_id + 2]); //获得初始金额
+	comm = communication_init(pipes, child_count + 1, current_proc_id, balance);
 	log_pipes(comm);
 	
-	/* Do process work */
-	if (current_proc_id == PARENT_ID){
+	// 进入工作函数
+	if (current_proc_id == PARENT_ID)
+	{
 		parent_handler(comm);
-	}
-	else{
-		child_handler(comm);
-	}
-	
-	/* Waiting for all children if parent process */
-	if (current_proc_id == PARENT_ID){
-		for (i = 0; i < proc_count; i++){
+		for (i = 0; i < child_count; i++) 
+		{ // 如果是父进程，等待所有子进程结束
 			waitpid(children[i], NULL, 0);
 		}
 	}
+	else
+	{
+		child_handler(comm);
+	}
 	
-	/* Finish work */
-	log_destroy();
-	communication_destroy(comm);
+	
+	// 后处理
+	log_destroy();//释放日志文件
+	communication_destroy(comm);//释放管道
 	return 0;
 }
 
-/** Do parent process work (Receive messages, payload, print history)
+/** 
+ * 父进程处理函数
+ * 负责接收消息，账单，输出历史记录
+ * 
+ * @param comm		管道管理器指针
  *
- * @param comm		Pointer to PipesCommunication
- *
- * @return -1 on incorrect message type, 0 on success.
+ * @return -1 不正确的消息类型, 0 正常返回.
  */
-int parent_handler(PipesCommunication* comm){
-	AllHistory all_history;
+int parent_handler(PipesCommunication* comm)
+{
+	AllHistory all_history; //总体记录
 	local_id i;
 	
-	all_history.s_history_len = comm->total_ids - 1;
+	all_history.s_history_len = comm->total_ids - 1; //等于子进程数量
 	
-    receive_all_msgs(comm, STARTED);
+    receive_all_msgs(comm, STARTED); //等待其他进程的就绪消息
 
-    /* Payload */
+    /* 处理账单 */
     bank_robbery(comm, comm->total_ids - 1);
 
-	/* Payload ended, stop children work */
+	/* 处理完成，等待子进程结束 */
 	increment_lamport_time();
     send_all_stop_msg(comm);
     receive_all_msgs(comm, DONE);
 	
-	/* Fill in History */
+	/* 输出历史记录 */
 	for (i = 1; i < comm->total_ids; i++){
 		BalanceHistory balance_history;
 		Message msg;
@@ -138,15 +142,16 @@ int parent_handler(PipesCommunication* comm){
 	return 0;
 }
 
-/** Do child process work
+/** 子进程处理函数
  *
- * @param comm		Pointer to PipesCommunication
+ * @param comm		管道管理器指针
  *
- * @return -1 on incorrect message type, 0 on success.
+ * @return -1 不正确的消息类型, 0 正常返回.
  */
-int child_handler(PipesCommunication* comm){
-	BalanceState balance_state;
-    BalanceHistory balance_history;
+int child_handler(PipesCommunication* comm)
+{
+	BalanceState balance_state; //余额状态
+    BalanceHistory balance_history; //余额历史
 	size_t done_left = comm->total_ids - 2;
 	int not_stopped = 1;
 
@@ -158,13 +163,13 @@ int child_handler(PipesCommunication* comm){
 	
 	update_history(&balance_state, &balance_history, 0, 0, 0, 0);
 	
-	/* Send & receive STARTED message */
+	// 发送并接受就绪消息
 	increment_lamport_time();
 	send_all_proc_event_msg(comm, STARTED);
 	increment_lamport_time();
     receive_all_msgs(comm, STARTED);
 	
-	/* Receive TRANSFER, STOP or DONE messages */
+	// 发送转账，停止，完成消息
 	while(done_left || not_stopped){
 		Message msg;
 		
@@ -187,56 +192,60 @@ int child_handler(PipesCommunication* comm){
 		}
 	}
 	
-	log_received_all_done(comm->current_id);
+	log_received_all_done(comm->current_id); //接受其他进程的完成消息
 	
-	/* Update history and send to PARENT */
+	// 更新历史记录并发送给父进程
 	update_history(&balance_state, &balance_history, 0, 0, 1, 0);
 	send_balance_history(comm, PARENT_ID, &balance_history);
 	return 0;
 }
 
-/** Do transfer when message received
+/** 
+ * 处理转账消息
+ * @param comm		管道管理器指针
+ * @param msg		转账消息
+ * @param state		余额状态
+ * @param history	余额历史记录
  *
- * @param comm		Pointer to PipesCommunication
- * @param msg		Received message
- * @param state		Balance state
- * @param history	Balance history
- *
- * @return -1 on incorrect address, -2 on sending msg error, 0 on success.
+ * @return -1 非法地址, -2 发送消息错误, 0 成功.
  */
-int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history){
+int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history)
+{
 	TransferOrder order;
 	memcpy(&order, msg->s_payload, sizeof(char) * msg->s_header.s_payload_len);
 	
 	update_history(state, history, 0, 0, 1, 0);
 	
-	/* Transfer request */
-	if (comm->current_id == order.s_src){
+	// 处理支出Transfer request */
+	if (comm->current_id == order.s_src)
+	{
 		update_history(state, history, -order.s_amount, msg->s_header.s_local_time, 1, 0);
 		update_history(state, history, 0, 0, 1, 0);
 		send_transfer_msg(comm, order.s_dst, &order);
 		comm->balance -= order.s_amount;
 	}
-	/* Transfer income */
-	else if (comm->current_id == order.s_dst){
+	/* 处理收入Transfer income */
+	else if (comm->current_id == order.s_dst)
+	{
 		update_history(state, history, order.s_amount, msg->s_header.s_local_time, 1, 1);
 		increment_lamport_time();
 		send_ack_msg(comm, PARENT_ID);
 		comm->balance += order.s_amount;
 	}
-	else{
+	else
+	{
 		return -1;
 	}
 	return 0;
 }
 
-/** Update process Balance history
+/** 更新分行余额历史记录
  *
- * @param state				Balance state
- * @param history			Balance history
- * @param amount			Balance changes amount
- * @param timestamp_msg		Timestamp from message
- * @param inc				Increment flag
+ * @param state				余额状态
+ * @param history			余额历史记录
+ * @param amount			余额变动金额
+ * @param timestamp_msg		消息时间戳
+ * @param inc				增加时间标记
  * @param fix				Fix flag
  */
 void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix){
@@ -271,10 +280,10 @@ void update_history(BalanceState* state, BalanceHistory* history, balance_t amou
 	history->s_history[curr_time] = *state;
 }
 
-/** Get process count from command line arguments.
+/** 从命令行参数中得到子进程数
  *
- * @param argc		Arguments count
- * @param argv		Double char array containing command line arguments.
+ * @param argc		参数数量
+ * @param argv		参数字符串数组指针
  *
  * @return -1 on error, any other values on success.
  */
@@ -284,15 +293,4 @@ int get_proc_count(int argc, char** argv){
 		return proc_count;
 	}
 	return -1;
-}
-
-/** Get process balance from command line arguments.
- *
- * @param proc_id	Process local id
- * @param argv		Double char array containing command line arguments.
- *
- * @return process balance
- */
-balance_t get_proc_balance(local_id proc_id, char** argv){
-	return atoi(argv[proc_id + 2]);
 }
