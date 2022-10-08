@@ -1,10 +1,3 @@
-/**
- * @file     log4pa.c
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Logger functions
- */
- 
 #include "log3pa.h"
 #include "common.h"
 #include "pa2345.h"

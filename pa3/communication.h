@@ -1,10 +1,3 @@
-/**
- * @file     communication.h
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Header file that contains structure and functions to organize IPC
- */
-
 #ifndef __IFMO_DISTRIBUTED_CLASS_COMMUNICATION__H
 #define __IFMO_DISTRIBUTED_CLASS_COMMUNICATION__H
 

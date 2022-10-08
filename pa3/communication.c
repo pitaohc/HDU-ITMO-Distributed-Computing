@@ -1,10 +1,3 @@
-/**
- * @file     communication.c
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Functions that help to organize IPC
- */
- 
 #include "communication.h"
 #include "log3pa.h"
 #include "pa2345.h"

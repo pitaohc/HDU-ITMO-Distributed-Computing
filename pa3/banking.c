@@ -1,10 +1,4 @@
-/**
- * @file     banking.c
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Transfer function
- */
- 
+
 #include "banking.h"
 #include "communication.h"
 #include "log3pa.h"

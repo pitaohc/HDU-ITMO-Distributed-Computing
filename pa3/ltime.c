@@ -1,10 +1,3 @@
-/**
- * @file     ltime.h
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Implementation of lamport time functions
- */
- 
 #include "ltime.h"
 
 static timestamp_t lamport_time = 0;

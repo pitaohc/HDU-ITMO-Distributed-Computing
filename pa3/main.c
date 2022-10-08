@@ -1,9 +1,3 @@
-/**
- * @file     main.c
- * @Author   @seniorkot
- * @date     May, 2018
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,13 +10,18 @@
 #include "banking.h"
 #include "ltime.h"
 
+/* define return status */
+#define ERROR_INVALID_ARGUMENTS -1
+#define ERROR_FORK -2
+#define SUCCESS 0
+
 int get_proc_count(int argc, char** argv);
 balance_t get_proc_balance(local_id proc_id, char** argv);
 
-int do_parent_work(PipesCommunication* comm);
-int do_child_work(PipesCommunication* comm);
+int parent_handler(PipesCommunication* comm);
+int child_handler(PipesCommunication* comm);
 
-int do_transfer(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history);
+int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history);
 void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix);
 
 /**
@@ -40,13 +39,13 @@ int main(int argc, char** argv){
 	/* Check args */
 	if (argc < 4 || (proc_count = get_proc_count(argc, argv)) == -1){
 		fprintf(stderr, "Usage: %s -p X y1 y2 ... yX\n", argv[0]);
-		return -1;
+		return ERROR_INVALID_ARGUMENTS;
 	}
 	
 	/* Initialize log files */
 	log_init();
 	
-	/* Allocate memory for children */
+	/*  */
 	children = malloc(sizeof(pid_t) * proc_count);
 	
 	/* Open pipes for all processes */
@@ -56,7 +55,7 @@ int main(int argc, char** argv){
 	for (i = 0; i < proc_count; i++){
 		fork_id = fork();
 		if (fork_id < 0){
-			return -2;
+			return ERROR_FORK;
 		}
 		else if (!fork_id){
 			free(children);
@@ -79,10 +78,10 @@ int main(int argc, char** argv){
 	
 	/* Do process work */
 	if (current_proc_id == PARENT_ID){
-		do_parent_work(comm);
+		parent_handler(comm);
 	}
 	else{
-		do_child_work(comm);
+		child_handler(comm);
 	}
 	
 	/* Waiting for all children if parent process */
@@ -104,7 +103,7 @@ int main(int argc, char** argv){
  *
  * @return -1 on incorrect message type, 0 on success.
  */
-int do_parent_work(PipesCommunication* comm){
+int parent_handler(PipesCommunication* comm){
 	AllHistory all_history;
 	local_id i;
 	
@@ -145,7 +144,7 @@ int do_parent_work(PipesCommunication* comm){
  *
  * @return -1 on incorrect message type, 0 on success.
  */
-int do_child_work(PipesCommunication* comm){
+int child_handler(PipesCommunication* comm){
 	BalanceState balance_state;
     BalanceHistory balance_history;
 	size_t done_left = comm->total_ids - 2;
@@ -172,7 +171,7 @@ int do_child_work(PipesCommunication* comm){
         while (receive_any(comm, &msg));
 		
 		if (msg.s_header.s_type == TRANSFER){
-			do_transfer(comm, &msg, &balance_state, &balance_history);
+			transfer_message(comm, &msg, &balance_state, &balance_history);
 		}
 		else if (msg.s_header.s_type == STOP){
 			update_history(&balance_state, &balance_history, 0, msg.s_header.s_local_time, 1, 0);
@@ -205,7 +204,7 @@ int do_child_work(PipesCommunication* comm){
  *
  * @return -1 on incorrect address, -2 on sending msg error, 0 on success.
  */
-int do_transfer(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history){
+int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history){
 	TransferOrder order;
 	memcpy(&order, msg->s_payload, sizeof(char) * msg->s_header.s_payload_len);
 	

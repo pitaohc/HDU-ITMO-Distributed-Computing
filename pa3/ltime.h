@@ -1,9 +1,3 @@
-/**
- * @file     ltime.h
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Header file for lamport time functions
- */
 
 #ifndef __IFMO_DISTRIBUTED_CLASS_LTIME__H
 #define __IFMO_DISTRIBUTED_CLASS_LTIME__H

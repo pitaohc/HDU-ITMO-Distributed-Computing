@@ -20,11 +20,11 @@
 #define BUFFER_SIZE 512
 
 int get_proc_count(char** argv);
-int send_msg(PipesCommunication* comm, MessageType type); //·¢ËÍÏûÏ¢
-int recieve_msgs(PipesCommunication* comm, MessageType type); //½ÓÊÕÏûÏ¢
+int send_msg(PipesCommunication* comm, MessageType type); //å‘é€æ¶ˆæ¯
+int recieve_msgs(PipesCommunication* comm, MessageType type); //æ¥æ”¶æ¶ˆæ¯
 
 /**
- * @return  -1 ÎŞĞ§²ÎÊı, -2 forkÊ§°Ü, 0³É¹¦
+ * @return  -1 æ— æ•ˆå‚æ•°, -2 forkå¤±è´¥, 0æˆåŠŸ
  * 
  */
 int main(int argc, char** argv){
@@ -36,10 +36,10 @@ int main(int argc, char** argv){
 	int* pipes;
 	PipesCommunication* comm;
 	
-	/* ½âÎö³ÌĞò²ÎÊı */
+	/* è§£æç¨‹åºå‚æ•° */
 	switch(argc){
 		case 1:
-			proc_count = 1; /* TODO: ÉèÖÃÄ¬ÈÏ³ÌĞò */
+			proc_count = 1; /* TODO: è®¾ç½®é»˜è®¤ç¨‹åº */
 			break;
 		case 3:
 			proc_count = get_proc_count(argv);
@@ -53,29 +53,29 @@ int main(int argc, char** argv){
 			return -1;
 	}
 	
-	/* ³õÊ¼»¯ÈÕÖ¾ */
+	/* åˆå§‹åŒ–æ—¥å¿— */
 	log_init();
 	
-	/* Îª×Ó½ø³Ì·ÖÅäÄÚ´æ */
+	/* ä¸ºå­è¿›ç¨‹åˆ†é…å†…å­˜ */
 	children = malloc(sizeof(pid_t) * proc_count);
 	
-	/* ÎªËùÓĞ½ø³Ì´ò¿ª¹ÜµÀ */
+	/* ä¸ºæ‰€æœ‰è¿›ç¨‹æ‰“å¼€ç®¡é“ */
 	pipes = pipes_init(proc_count + 1);
 	
-	/* ´´½¨×Ó½ø³Ì */
+	/* åˆ›å»ºå­è¿›ç¨‹ */
 	for (i = 0; i < proc_count; i++){
 		fork_id = fork();
 		if (fork_id < 0){
 			return -2;
 		}
-		else if (fork_id == 0){ //´ú±í×Ó½ø³Ì
+		else if (fork_id == 0){ //ä»£è¡¨å­è¿›ç¨‹
 			free(children);
 			break;
 		}
-		children[i] = fork_id; //¼ÇÂ¼id
+		children[i] = fork_id; //è®°å½•id
 	}
 	
-	/* ÉèÖÃµ±Ç°id */
+	/* è®¾ç½®å½“å‰id */
 	if (fork_id == 0){
 		current_proc_id = i + 1;
 	}
@@ -87,35 +87,35 @@ int main(int argc, char** argv){
 	comm = communication_init(pipes, proc_count + 1, current_proc_id);
 	log_pipes(comm);
 	
-	/* ·¢ËÍºÍ½ÓÊÕ¿ªÊ¼ÏûÏ¢ */
+	/* å‘é€å’Œæ¥æ”¶å¼€å§‹æ¶ˆæ¯ */
 	if (current_proc_id != PARENT_ID){
 		send_msg(comm, STARTED);
 	}
 	recieve_msgs(comm, STARTED);
 	
-	/* ·¢ËÍºÍ½ÓÊÕ½áÊøÏûÏ¢ */
+	/* å‘é€å’Œæ¥æ”¶ç»“æŸæ¶ˆæ¯ */
 	if (current_proc_id != PARENT_ID){
 		send_msg(comm, DONE);
 	}
 	recieve_msgs(comm, DONE);
 	
-	/* Èç¹û¸¸½ø³ÌµÈ´ıËùÓĞ×Ó½ø³Ì */
+	/* å¦‚æœçˆ¶è¿›ç¨‹ç­‰å¾…æ‰€æœ‰å­è¿›ç¨‹ */
 	if (current_proc_id == PARENT_ID){
 		for (i = 0; i < proc_count; i++){
 			waitpid(children[i], NULL, 0);
 		}
 	}
 	
-	log_destroy(); //¼ÇÂ¼É¾³ıÏûÏ¢
+	log_destroy(); //è®°å½•åˆ é™¤æ¶ˆæ¯
 	communication_destroy(comm);
 	return 0;
 }
 
-/** ´ÓÃüÁîĞĞ²ÎÊıµÃµ½½ø³ÌÊıÁ¿
+/** ä»å‘½ä»¤è¡Œå‚æ•°å¾—åˆ°è¿›ç¨‹æ•°é‡
  *
- * @param argv		°üº¬ÃüÁîĞĞ²ÎÊıµÄË«×Ö·ûÊı×é
+ * @param argv		åŒ…å«å‘½ä»¤è¡Œå‚æ•°çš„åŒå­—ç¬¦æ•°ç»„
  *
- * @return -1 ´íÎó, ÆäËûÖµ±íÊ¾ºóÃæµÄ²ÎÊı.
+ * @return -1 é”™è¯¯, å…¶ä»–å€¼è¡¨ç¤ºåé¢çš„å‚æ•°.
  */
 int get_proc_count(char** argv){
 	if (!strcmp(argv[1], "-p")){
@@ -124,16 +124,16 @@ int get_proc_count(char** argv){
 	return -1;
 }
 
-/** ·¢ËÍÏûÏ¢¸øÆäËûËùÓĞ½ø³Ì
+/** å‘é€æ¶ˆæ¯ç»™å…¶ä»–æ‰€æœ‰è¿›ç¨‹
  *
- * @param comm		Í¨ĞÅ¹ÜµÀÖ¸Õë
- * @param type		ÏûÏ¢ÀàĞÍ: STARTED / DONE
+ * @param comm		é€šä¿¡ç®¡é“æŒ‡é’ˆ
+ * @param type		æ¶ˆæ¯ç±»å‹: STARTED / DONE
  *
- * @return -1 on ²»ÕıÈ·µÄÀàĞÍ, -2 on ÄÚ²¿´íÎó, -3 on ·¢ËÍ´íÎó, 0 on ³É¹¦.
+ * @return -1 on ä¸æ­£ç¡®çš„ç±»å‹, -2 on å†…éƒ¨é”™è¯¯, -3 on å‘é€é”™è¯¯, 0 on æˆåŠŸ.
  */
 int send_msg(PipesCommunication* comm, MessageType type){
-	Message msg; //ÏûÏ¢Ìå
-	uint16_t length = 0; //³¤¶È
+	Message msg; //æ¶ˆæ¯ä½“
+	uint16_t length = 0; //é•¿åº¦
 	char buf[BUFFER_SIZE];
     msg.s_header.s_magic = MESSAGE_MAGIC;
     msg.s_header.s_type = type;
@@ -166,12 +166,12 @@ int send_msg(PipesCommunication* comm, MessageType type){
 	return 0;
 }
 
-/** ´ÓÆäËû½ø³Ì½ÓÊÕÏûÏ¢
+/** ä»å…¶ä»–è¿›ç¨‹æ¥æ”¶æ¶ˆæ¯
  *
- * @param comm		Í¨ĞÅ¹ÜµÀÖ¸Õë
- * @param type		ÏûÏ¢ÀàĞÍ: STARTED / DONE
+ * @param comm		é€šä¿¡ç®¡é“æŒ‡é’ˆ
+ * @param type		æ¶ˆæ¯ç±»å‹: STARTED / DONE
  *
- * @return -1 ½ÓÊÕÏûÏ¢´íÎó, 0 ³É¹¦.
+ * @return -1 æ¥æ”¶æ¶ˆæ¯é”™è¯¯, 0 æˆåŠŸ.
  */
 int recieve_msgs(PipesCommunication* comm, MessageType type){
 	Message msg;

@@ -1,10 +1,3 @@
-/**
- * @file     ipc.c
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    IPC functions
- */
-
 #include "ipc.h"
 #include "communication.h"
  

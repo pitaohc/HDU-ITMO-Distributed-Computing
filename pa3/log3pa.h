@@ -1,10 +1,3 @@
-/**
- * @file     log4pa.h
- * @Author   @seniorkot
- * @date     May, 2018
- * @brief    Header file for logger functions
- */
-
 #ifndef __IFMO_DISTRIBUTED_CLASS_LOG3PA__H
 #define __IFMO_DISTRIBUTED_CLASS_LOG3PA__H
 
