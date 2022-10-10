@@ -11,7 +11,7 @@
 
 /** Set 0_NONBLOCK flag to fd
  * 
- * @param fd			ÎÄ¼şÃèÊö·û
+ * @param fd			æ–‡ä»¶æè¿°ç¬¦
  *
  * @return -1 if can't get flags, -2 if can't set flags, 0 on success
  */
@@ -30,11 +30,11 @@ int set_nonblock(int pipe_id)
     return 0;
 }
 
-/** ´ò¿ª¹ÜµÀÎÄ¼şÃèÊö·û
+/** æ‰“å¼€ç®¡é“æ–‡ä»¶æè¿°ç¬¦
  * 
- * @param proc_count    °üº¬¸¸½ø³ÌµÄ½ø³ÌÊıÁ¿
+ * @param proc_count    åŒ…å«çˆ¶è¿›ç¨‹çš„è¿›ç¨‹æ•°é‡
  *
- * @return ¹ÜµÀÎÄ¼şÃèÊö·ûÊı×éÖ¸Õë
+ * @return ç®¡é“æ–‡ä»¶æè¿°ç¬¦æ•°ç»„æŒ‡é’ˆ
  */
 int* pipes_init(size_t proc_count)
 {
@@ -68,13 +68,13 @@ int* pipes_init(size_t proc_count)
 	return pipes;
 }
 
-/** ³õÊ¼»¯¹ÜµÀÍ¨Ñ¶
+/** åˆå§‹åŒ–ç®¡é“é€šè®¯
  * 
- * @param pipes			¹ÜµÀÎÄ¼şÃèÊö·ûÊı×éÖ¸Õë
- * @param proc_count    °üº¬¸¸½ø³ÌµÄ½ø³ÌÊıÁ¿
- * @param curr_proc		µ±Ç°½ø³Ì±¾µØID
+ * @param pipes			ç®¡é“æ–‡ä»¶æè¿°ç¬¦æ•°ç»„æŒ‡é’ˆ
+ * @param proc_count    åŒ…å«çˆ¶è¿›ç¨‹çš„è¿›ç¨‹æ•°é‡
+ * @param curr_proc		å½“å‰è¿›ç¨‹æœ¬åœ°ID
  *
- * @return ¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
+ * @return ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
  */
 PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id curr_proc, balance_t balance){
 	PipesCommunication* this = malloc(sizeof(PipesCommunication));;
@@ -87,7 +87,7 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
 	
 	memcpy(this->pipes, pipes + curr_proc * 2 * offset, sizeof(int) * offset * 2);
 	
-	/* ¹Ø±ÕÎŞÓÃµÄÎÄ¼şÃèÊö·û */
+	/* å…³é—­æ— ç”¨çš„æ–‡ä»¶æè¿°ç¬¦ */
 	for (i = 0; i < proc_count; i++)
 	{
 		if (i == curr_proc)
@@ -104,9 +104,9 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
 	return this;
 }
 
-/** ¹Ø±ÕËùÓĞÎÄ¼şÃèÊö·û²¢ÊÍ·Å×ÊÔ´
+/** å…³é—­æ‰€æœ‰æ–‡ä»¶æè¿°ç¬¦å¹¶é‡Šæ”¾èµ„æº
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
  */
 void communication_destroy(PipesCommunication* comm)
 {
@@ -119,12 +119,12 @@ void communication_destroy(PipesCommunication* comm)
 	free(comm);
 }
 
-/** ·¢ËÍÊÂ¼şÏûÏ¢¸øËùÓĞ½ø³Ì
+/** å‘é€äº‹ä»¶æ¶ˆæ¯ç»™æ‰€æœ‰è¿›ç¨‹
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
- * @param type		ÏûÏ¢ÀàĞÍ: STARTED / DONE
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
+ * @param type		æ¶ˆæ¯ç±»å‹: STARTED / DONE
  *
- * @return -1 ·Ç·¨ÏûÏ¢ÀàĞÍ, -2 ÄÚ²¿´íÎó, -3 ·¢ËÍÏûÏ¢´íÎó, 0 ³É¹¦
+ * @return -1 éæ³•æ¶ˆæ¯ç±»å‹, -2 å†…éƒ¨é”™è¯¯, -3 å‘é€æ¶ˆæ¯é”™è¯¯, 0 æˆåŠŸ
  */
 int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
 	Message msg;
@@ -162,9 +162,9 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
 	return 0;
 }
 
-/** ·¢ËÍÍ£Ö¹ÏûÏ¢¸øËùÓĞ½ø³Ì
+/** å‘é€åœæ­¢æ¶ˆæ¯ç»™æ‰€æœ‰è¿›ç¨‹
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
  */
 void send_all_stop_msg(PipesCommunication* comm)
 {
@@ -177,11 +177,11 @@ void send_all_stop_msg(PipesCommunication* comm)
 	send_multicast(comm, &msg);
 }
 
-/** ·¢ËÍ×ªÕËÏûÏ¢
+/** å‘é€è½¬è´¦æ¶ˆæ¯
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
- * @param dst 		Ä¿±êID
- * @param order 	ÕËµ¥ĞÅÏ¢
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
+ * @param dst 		ç›®æ ‡ID
+ * @param order 	è´¦å•ä¿¡æ¯
  */
 void send_transfer_msg(PipesCommunication* comm, local_id dst, TransferOrder* order){
 	Message msg;
@@ -195,10 +195,10 @@ void send_transfer_msg(PipesCommunication* comm, local_id dst, TransferOrder* or
 	while (send(comm, dst, &msg) < 0);
 }
 
-/** ·¢ËÍACK
+/** å‘é€ACK
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
- * @param dst 		Ä¿±êID
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
+ * @param dst 		ç›®æ ‡ID
  */
 void send_ack_msg(PipesCommunication* comm, local_id dst){
 	Message msg;
@@ -210,11 +210,11 @@ void send_ack_msg(PipesCommunication* comm, local_id dst){
 	while (send(comm, dst, &msg) < 0);
 }
 
-/** ·¢ËÍÓà¶îÀúÊ·¼ÇÂ¼¸ø¸¸½ø³Ì
+/** å‘é€ä½™é¢å†å²è®°å½•ç»™çˆ¶è¿›ç¨‹
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
- * @param dst 		Ä¿±êID
- * @param history	Óà¶îÀúÊ·ĞÅÏ¢
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
+ * @param dst 		ç›®æ ‡ID
+ * @param history	ä½™é¢å†å²ä¿¡æ¯
  */
 void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory* history)
 {
@@ -229,10 +229,10 @@ void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory
 	while (send(comm, dst, &msg) < 0);
 }
 
-/** ½ÓÊÕËùÓĞÏûÏ¢
+/** æ¥æ”¶æ‰€æœ‰æ¶ˆæ¯
  * 
- * @param comm		¹ÜµÀÍ¨Ñ¶¶ÔÏóÖ¸Õë
- * @param type		ÏûÏ¢ÀàĞÍ
+ * @param comm		ç®¡é“é€šè®¯å¯¹è±¡æŒ‡é’ˆ
+ * @param type		æ¶ˆæ¯ç±»å‹
  */
 void receive_all_msgs(PipesCommunication* comm, MessageType type)
 {

@@ -3,7 +3,7 @@
 static timestamp_t lamport_time = 0;
 
 /**
-* Ôö¼ÓÊ±¼ä´Á
+* å¢åŠ æ—¶é—´æˆ³
 */
 timestamp_t increment_lamport_time()
 {
@@ -11,7 +11,7 @@ timestamp_t increment_lamport_time()
 }
 
 /**
-* ÉèÖÃÂß¼­Ê±¼ä
+* è®¾ç½®é€»è¾‘æ—¶é—´
 */
 timestamp_t set_lamport_time(timestamp_t new_lamport_time)
 {
@@ -23,7 +23,7 @@ timestamp_t set_lamport_time(timestamp_t new_lamport_time)
 }
 
 /**
-* ´ÓÏûÏ¢ÖĞÉèÖÃÂß¼­Ê±¼ä
+* ä»æ¶ˆæ¯ä¸­è®¾ç½®é€»è¾‘æ—¶é—´
 */
 timestamp_t set_lamport_time_from_msg(Message* msg)
 {
@@ -32,7 +32,7 @@ timestamp_t set_lamport_time_from_msg(Message* msg)
 }
 
 /**
-* »ñµÃÂß¼­Ê±¼ä
+* è·å¾—é€»è¾‘æ—¶é—´
 */
 timestamp_t get_lamport_time()
 {

@@ -10,7 +10,7 @@
 #include "banking.h"
 #include "ltime.h"
 
-/* ¶¨ÒåÖ÷º¯Êı·µ»ØÀàĞÍ */
+/* å®šä¹‰ä¸»å‡½æ•°è¿”å›ç±»å‹ */
 #define ERROR_INVALID_ARGUMENTS -1
 #define ERROR_FORK -2
 #define SUCCESS 0
@@ -27,7 +27,7 @@ int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state
 void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix);
 
 /**
- * @return -1 ÎŞĞ§²ÎÊı, -2 ´´½¨×Ó½ø³Ì´íÎó, 0 Õı³£½áÊø
+ * @return -1 æ— æ•ˆå‚æ•°, -2 åˆ›å»ºå­è¿›ç¨‹é”™è¯¯, 0 æ­£å¸¸ç»“æŸ
  */
 int main(int argc, char** argv)
 {
@@ -39,23 +39,23 @@ int main(int argc, char** argv)
 	local_id current_proc_id;
 	PipesCommunication* comm;
 	
-	// ¼ì²é²ÎÊı
+	// æ£€æŸ¥å‚æ•°
 	if (argc < 4 || (child_count = get_proc_count(argc, argv)) == -1)
 	{
 		//fprintf(stderr, "Usage: %s -p X y1 y2 ... yX\n", argv[0]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	
-	// ³õÊ¼»¯ÈÕÖ¾
+	// åˆå§‹åŒ–æ—¥å¿—
 	log_init();
 	
-	// ·ÖÅäÄÚ´æ
+	// åˆ†é…å†…å­˜
 	children = malloc(sizeof(pid_t) * child_count);
 	
-	// ÎªËùÓĞ½ø³Ì´ò¿ª¹ÜµÀ
+	// ä¸ºæ‰€æœ‰è¿›ç¨‹æ‰“å¼€ç®¡é“
 	pipes = pipes_init(child_count + 1);
 	
-	// ´´½¨×Ó½ø³Ì
+	// åˆ›å»ºå­è¿›ç¨‹
 	for (i = 0; i < child_count; i++)
 	{
 		fork_id = fork();
@@ -71,21 +71,21 @@ int main(int argc, char** argv)
 		children[i] = fork_id;
 	}
 	
-	// ÉèÖÃµ±Ç°½ø³ÌID
+	// è®¾ç½®å½“å‰è¿›ç¨‹ID
 	current_proc_id = (fork_id == 0) i + 1 : PARENT_ID;
 
 	
-	// Îª½ø³ÌÉèÖÃ¹ÜµÀfds  */
-	balance_t balance = atoi(argv[proc_id + 2]); //»ñµÃ³õÊ¼½ğ¶î
+	// ä¸ºè¿›ç¨‹è®¾ç½®ç®¡é“fds  */
+	balance_t balance = atoi(argv[proc_id + 2]); //è·å¾—åˆå§‹é‡‘é¢
 	comm = communication_init(pipes, child_count + 1, current_proc_id, balance);
 	log_pipes(comm);
 	
-	// ½øÈë¹¤×÷º¯Êı
+	// è¿›å…¥å·¥ä½œå‡½æ•°
 	if (current_proc_id == PARENT_ID)
 	{
 		parent_handler(comm);
 		for (i = 0; i < child_count; i++) 
-		{ // Èç¹ûÊÇ¸¸½ø³Ì£¬µÈ´ıËùÓĞ×Ó½ø³Ì½áÊø
+		{ // å¦‚æœæ˜¯çˆ¶è¿›ç¨‹ï¼Œç­‰å¾…æ‰€æœ‰å­è¿›ç¨‹ç»“æŸ
 			waitpid(children[i], NULL, 0);
 		}
 	}
@@ -95,37 +95,37 @@ int main(int argc, char** argv)
 	}
 	
 	
-	// ºó´¦Àí
-	log_destroy();//ÊÍ·ÅÈÕÖ¾ÎÄ¼ş
-	communication_destroy(comm);//ÊÍ·Å¹ÜµÀ
+	// åå¤„ç†
+	log_destroy();//é‡Šæ”¾æ—¥å¿—æ–‡ä»¶
+	communication_destroy(comm);//é‡Šæ”¾ç®¡é“
 	return 0;
 }
 
 /** 
- * ¸¸½ø³Ì´¦Àíº¯Êı
- * ¸ºÔğ½ÓÊÕÏûÏ¢£¬ÕËµ¥£¬Êä³öÀúÊ·¼ÇÂ¼
+ * çˆ¶è¿›ç¨‹å¤„ç†å‡½æ•°
+ * è´Ÿè´£æ¥æ”¶æ¶ˆæ¯ï¼Œè´¦å•ï¼Œè¾“å‡ºå†å²è®°å½•
  * 
- * @param comm		¹ÜµÀ¹ÜÀíÆ÷Ö¸Õë
+ * @param comm		ç®¡é“ç®¡ç†å™¨æŒ‡é’ˆ
  *
- * @return -1 ²»ÕıÈ·µÄÏûÏ¢ÀàĞÍ, 0 Õı³£·µ»Ø.
+ * @return -1 ä¸æ­£ç¡®çš„æ¶ˆæ¯ç±»å‹, 0 æ­£å¸¸è¿”å›.
  */
 int parent_handler(PipesCommunication* comm)
 {
-	AllHistory all_history; //×ÜÌå¼ÇÂ¼
+	AllHistory all_history; //æ€»ä½“è®°å½•
 	
-	all_history.s_history_len = comm->total_ids - 1; //µÈÓÚ×Ó½ø³ÌÊıÁ¿
+	all_history.s_history_len = comm->total_ids - 1; //ç­‰äºå­è¿›ç¨‹æ•°é‡
 	
-    receive_all_msgs(comm, STARTED); //µÈ´ıÆäËû½ø³ÌµÄ¾ÍĞ÷ÏûÏ¢
+    receive_all_msgs(comm, STARTED); //ç­‰å¾…å…¶ä»–è¿›ç¨‹çš„å°±ç»ªæ¶ˆæ¯
 
-    /* ´¦ÀíÕËµ¥ */
+    /* å¤„ç†è´¦å• */
     bank_robbery(comm, comm->total_ids - 1);
 
-	/* ´¦ÀíÍê³É£¬µÈ´ı×Ó½ø³Ì½áÊø */
+	/* å¤„ç†å®Œæˆï¼Œç­‰å¾…å­è¿›ç¨‹ç»“æŸ */
 	increment_lamport_time();
     send_all_stop_msg(comm);
     receive_all_msgs(comm, DONE);
 	
-	/* Êä³öÀúÊ·¼ÇÂ¼ */
+	/* è¾“å‡ºå†å²è®°å½• */
 	for (local_id i = 1; i < comm->total_ids; i++)
 	{
 		BalanceHistory balance_history;
@@ -146,16 +146,16 @@ int parent_handler(PipesCommunication* comm)
 	return 0;
 }
 
-/** ×Ó½ø³Ì´¦Àíº¯Êı
+/** å­è¿›ç¨‹å¤„ç†å‡½æ•°
  *
- * @param comm		¹ÜµÀ¹ÜÀíÆ÷Ö¸Õë
+ * @param comm		ç®¡é“ç®¡ç†å™¨æŒ‡é’ˆ
  *
- * @return -1 ²»ÕıÈ·µÄÏûÏ¢ÀàĞÍ, 0 Õı³£·µ»Ø.
+ * @return -1 ä¸æ­£ç¡®çš„æ¶ˆæ¯ç±»å‹, 0 æ­£å¸¸è¿”å›.
  */
 int child_handler(PipesCommunication* comm)
 {
-	BalanceState balance_state; //Óà¶î×´Ì¬
-    BalanceHistory balance_history; //Óà¶îÀúÊ·
+	BalanceState balance_state; //ä½™é¢çŠ¶æ€
+    BalanceHistory balance_history; //ä½™é¢å†å²
 	size_t done_left = comm->total_ids - 2;
 	int stopped = false;
 
@@ -167,13 +167,13 @@ int child_handler(PipesCommunication* comm)
 	
 	update_history(&balance_state, &balance_history, 0, 0, 0, 0);
 	
-	// ·¢ËÍ²¢½ÓÊÜ¾ÍĞ÷ÏûÏ¢
+	// å‘é€å¹¶æ¥å—å°±ç»ªæ¶ˆæ¯
 	increment_lamport_time();
 	send_all_proc_event_msg(comm, STARTED);
 	increment_lamport_time();
     receive_all_msgs(comm, STARTED);
 	
-	// ·¢ËÍ×ªÕË£¬Í£Ö¹£¬Íê³ÉÏûÏ¢
+	// å‘é€è½¬è´¦ï¼Œåœæ­¢ï¼Œå®Œæˆæ¶ˆæ¯
 	while(done_left || !not_stopped)
 	{
 		Message msg;
@@ -201,22 +201,22 @@ int child_handler(PipesCommunication* comm)
 		}
 	}
 	
-	log_received_all_done(comm->current_id); //½ÓÊÜÆäËû½ø³ÌµÄÍê³ÉÏûÏ¢
+	log_received_all_done(comm->current_id); //æ¥å—å…¶ä»–è¿›ç¨‹çš„å®Œæˆæ¶ˆæ¯
 	
-	// ¸üĞÂÀúÊ·¼ÇÂ¼²¢·¢ËÍ¸ø¸¸½ø³Ì
+	// æ›´æ–°å†å²è®°å½•å¹¶å‘é€ç»™çˆ¶è¿›ç¨‹
 	update_history(&balance_state, &balance_history, 0, 0, 1, 0);
 	send_balance_history(comm, PARENT_ID, &balance_history);
 	return 0;
 }
 
 /** 
- * ´¦Àí×ªÕËÏûÏ¢
- * @param comm		¹ÜµÀ¹ÜÀíÆ÷Ö¸Õë
- * @param msg		×ªÕËÏûÏ¢
- * @param state		Óà¶î×´Ì¬
- * @param history	Óà¶îÀúÊ·¼ÇÂ¼
+ * å¤„ç†è½¬è´¦æ¶ˆæ¯
+ * @param comm		ç®¡é“ç®¡ç†å™¨æŒ‡é’ˆ
+ * @param msg		è½¬è´¦æ¶ˆæ¯
+ * @param state		ä½™é¢çŠ¶æ€
+ * @param history	ä½™é¢å†å²è®°å½•
  *
- * @return -1 ·Ç·¨µØÖ·, -2 ·¢ËÍÏûÏ¢´íÎó, 0 ³É¹¦.
+ * @return -1 éæ³•åœ°å€, -2 å‘é€æ¶ˆæ¯é”™è¯¯, 0 æˆåŠŸ.
  */
 int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state, BalanceHistory* history)
 {
@@ -225,7 +225,7 @@ int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state
 	
 	update_history(state, history, 0, 0, 1, 0);
 	
-	// ´¦ÀíÖ§³öTransfer request */
+	// å¤„ç†æ”¯å‡ºTransfer request */
 	if (comm->current_id == order.s_src)
 	{
 		update_history(state, history, -order.s_amount, msg->s_header.s_local_time, 1, 0);
@@ -233,7 +233,7 @@ int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state
 		send_transfer_msg(comm, order.s_dst, &order);
 		comm->balance -= order.s_amount;
 	}
-	/* ´¦ÀíÊÕÈëTransfer income */
+	/* å¤„ç†æ”¶å…¥Transfer income */
 	else if (comm->current_id == order.s_dst)
 	{
 		update_history(state, history, order.s_amount, msg->s_header.s_local_time, 1, 1);
@@ -248,13 +248,13 @@ int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state
 	return 0;
 }
 
-/** ¸üĞÂ·ÖĞĞÓà¶îÀúÊ·¼ÇÂ¼
+/** æ›´æ–°åˆ†è¡Œä½™é¢å†å²è®°å½•
  *
- * @param state				Óà¶î×´Ì¬
- * @param history			Óà¶îÀúÊ·¼ÇÂ¼
- * @param amount			Óà¶î±ä¶¯½ğ¶î
- * @param timestamp_msg		ÏûÏ¢Ê±¼ä´Á
- * @param inc				Ôö¼ÓÊ±¼ä±ê¼Ç
+ * @param state				ä½™é¢çŠ¶æ€
+ * @param history			ä½™é¢å†å²è®°å½•
+ * @param amount			ä½™é¢å˜åŠ¨é‡‘é¢
+ * @param timestamp_msg		æ¶ˆæ¯æ—¶é—´æˆ³
+ * @param inc				å¢åŠ æ—¶é—´æ ‡è®°
  * @param fix				Fix flag
  */
 void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix)
@@ -295,10 +295,10 @@ void update_history(BalanceState* state, BalanceHistory* history, balance_t amou
 	history->s_history[curr_time] = *state;
 }
 
-/** ´ÓÃüÁîĞĞ²ÎÊıÖĞµÃµ½×Ó½ø³ÌÊı
+/** ä»å‘½ä»¤è¡Œå‚æ•°ä¸­å¾—åˆ°å­è¿›ç¨‹æ•°
  *
- * @param argc		²ÎÊıÊıÁ¿
- * @param argv		²ÎÊı×Ö·û´®Êı×éÖ¸Õë
+ * @param argc		å‚æ•°æ•°é‡
+ * @param argv		å‚æ•°å­—ç¬¦ä¸²æ•°ç»„æŒ‡é’ˆ
  *
  * @return -1 on error, any other values on success.
  */

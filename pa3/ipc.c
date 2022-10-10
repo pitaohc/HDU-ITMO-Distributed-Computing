@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 /**
-* È¡µÃĞòºÅ
+* å–å¾—åºå·
 */
 int8_t get_index(int8_t x, int8_t id)
 {
@@ -12,7 +12,7 @@ int8_t get_index(int8_t x, int8_t id)
 }
 
 /**
-* ·¢ËÍÏûÏ¢
+* å‘é€æ¶ˆæ¯
 */
 int send(void * self, local_id dst, const Message * msg)
 {
@@ -31,7 +31,7 @@ int send(void * self, local_id dst, const Message * msg)
 }
 
 /**
-* ·¢ËÍ¹ã²¥
+* å‘é€å¹¿æ’­
 */
 int send_multicast(void * self, const Message * msg)
 {
@@ -50,7 +50,7 @@ int send_multicast(void * self, const Message * msg)
 }
 
 /**
-* ½ÓÊÜÏûÏ¢
+* æ¥å—æ¶ˆæ¯
 */
 int receive(void * self, local_id from, Message * msg)
 {
@@ -75,7 +75,7 @@ int receive(void * self, local_id from, Message * msg)
 }
 
 /**
-* ½ÓÊÜ¹ã²¥ÏûÏ¢
+* æ¥å—å¹¿æ’­æ¶ˆæ¯
 */
 int receive_any(void * self, Message * msg)
 {

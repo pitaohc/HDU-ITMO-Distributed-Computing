@@ -9,7 +9,7 @@ FILE* pipes_log_f;
 FILE* events_log_f;
 
 /**
-* ³õÊ¼»¯ÈÕÖ¾
+* åˆå§‹åŒ–æ—¥å¿—
 */
 void log_init()
 {
@@ -18,7 +18,7 @@ void log_init()
 }
 
 /**
-* ÊÍ·ÅÈÕÖ¾
+* é‡Šæ”¾æ—¥å¿—
 */
 void log_destroy()
 {
@@ -27,7 +27,7 @@ void log_destroy()
 }
 
 /**
-* ¼ÇÂ¼¹ÜµÀ´´½¨
+* è®°å½•ç®¡é“åˆ›å»º
 */
 void log_pipes(PipesCommunication* comm)
 {
@@ -49,7 +49,7 @@ void log_pipes(PipesCommunication* comm)
 }
 
 /**
-* ¼ÇÂ¼³õÊ¼Óà¶î
+* è®°å½•åˆå§‹ä½™é¢
 */
 void log_started(local_id id, balance_t balance)
 {
@@ -59,7 +59,7 @@ void log_started(local_id id, balance_t balance)
 
 
 /**
-* ¼ÇÂ¼½ÓÊÕµ½ËùÓĞ½ø³Ì¾ÍĞ÷ÏûÏ¢
+* è®°å½•æ¥æ”¶åˆ°æ‰€æœ‰è¿›ç¨‹å°±ç»ªæ¶ˆæ¯
 */
 void log_received_all_started(local_id id)
 {
@@ -68,7 +68,7 @@ void log_received_all_started(local_id id)
 }
 
 /**
-* ¼ÇÂ¼×Ó½ø³ÌÍê³É
+* è®°å½•å­è¿›ç¨‹å®Œæˆ
 */
 void log_done(local_id id, balance_t balance)
 {
@@ -77,7 +77,7 @@ void log_done(local_id id, balance_t balance)
 }
 
 /**
-* ¼ÇÂ¼½ÓÊÜËùÓĞ½ø³ÌÍê³É
+* è®°å½•æ¥å—æ‰€æœ‰è¿›ç¨‹å®Œæˆ
 */
 void log_received_all_done(local_id id)
 {
@@ -86,7 +86,7 @@ void log_received_all_done(local_id id)
 }
 
 /**
-* ¼ÇÂ¼×ª³ö
+* è®°å½•è½¬å‡º
 */
 void log_transfer_out(local_id from, local_id dst, balance_t amount)
 {
@@ -95,7 +95,7 @@ void log_transfer_out(local_id from, local_id dst, balance_t amount)
 }
 
 /**
-* ¼ÇÂ¼×ªÈë
+* è®°å½•è½¬å…¥
 */
 void log_transfer_in(local_id from, local_id dst, balance_t amount)
 {
