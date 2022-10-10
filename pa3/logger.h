@@ -7,7 +7,7 @@
 
 
 void log_init();
-void log_destroy();
+void log_release();
 
 void log_pipes(PipesCommunication* comm);
 

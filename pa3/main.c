@@ -10,10 +10,19 @@
 #include "banking.h"
 #include "lamport_time.h"
 
+
+#define Name(x) #x
+
 /* 定义主函数返回类型 */
-#define ERROR_INVALID_ARGUMENTS -1
-#define ERROR_FORK -2
-#define SUCCESS 0
+enum 
+{
+ ERROR_INVALID_ARGUMENTS = -1,
+ ERROR_FORK = -2,
+ SUCCESS = 0,
+ ERROR_CHILD = -1,
+ ERROR_PARENT = -1,
+};
+
 
 #define true 1
 #define false 0
@@ -33,9 +42,10 @@ int main(int argc, char** argv)
 {
     size_t i;
     int child_count;
+    int handler_result = 0; //处理函数返回值
     int* pipes;
     pid_t* children;
-    pid_t fork_id;
+    pid_t fork_result;
     local_id current_proc_id;
     PipesCommunication* comm;
 
@@ -58,21 +68,21 @@ int main(int argc, char** argv)
     // 创建子进程
     for (i = 0; i < child_count; i++)
     {
-        fork_id = fork();
-        if (fork_id < 0)
+        fork_result = fork();
+        if (fork_result < 0)
         {
             return ERROR_FORK;
         }
-        else if (!fork_id)
+        else if (!fork_result)
         {
             free(children);
             break;
         }
-        children[i] = fork_id;
+        children[i] = fork_result;
     }
 
     // 设置当前进程ID
-    current_proc_id = (fork_id == 0) i + 1 : PARENT_ID;
+    current_proc_id = (fork_result == 0) i + 1 : PARENT_ID;
 
 
     // 为进程设置管道fds  */
@@ -81,61 +91,56 @@ int main(int argc, char** argv)
     log_pipes(comm);
 
     // 进入工作函数
+    handler_result = (current_proc_id == PARENT_ID) ? parent_handler(comm) : child_handler(comm);
+
+    // 后处理
     if (current_proc_id == PARENT_ID)
     {
-        parent_handler(comm);
-        for (i = 0; i < child_count; i++)
+        for (size_t i = 0; i < child_count; i++)
         { // 如果是父进程，等待所有子进程结束
             waitpid(children[i], NULL, 0);
         }
     }
-    else
-    {
-        child_handler(comm);
-    }
-
-
-    // 后处理
-    log_destroy();//释放日志文件
     communication_destroy(comm);//释放管道
-    return 0;
+    log_release();//释放日志文件
+    return handler_result;
 }
 
 /**
  * 父进程处理函数
  * 负责接收消息，账单，输出历史记录
  *
- * @param comm		管道管理器指针
+ * @param pc		管道管理器指针
  *
  * @return -1 不正确的消息类型, 0 正常返回.
  */
-int parent_handler(PipesCommunication* comm)
+int parent_handler(PipesCommunication* pc)
 {
     AllHistory all_history; //总体记录
 
-    all_history.s_history_len = comm->total_ids - 1; //等于子进程数量
+    all_history.s_history_len = pc->total_ids - 1; //等于子进程数量
 
-    receive_all_msgs(comm, STARTED); //等待其他进程的就绪消息
+    receive_all_msgs(pc, STARTED); //等待其他进程的就绪消息
 
     /* 处理账单 */
-    bank_robbery(comm, comm->total_ids - 1);
+    bank_robbery(pc, pc->total_ids - 1);
 
     /* 处理完成，等待子进程结束 */
     increment_lamport_time();
-    send_all_stop_msg(comm);
-    receive_all_msgs(comm, DONE);
+    send_all_stop_msg(pc);
+    receive_all_msgs(pc, DONE);
 
     /* 输出历史记录 */
-    for (local_id i = 1; i < comm->total_ids; i++)
+    for (local_id i = 1; i < pc->total_ids; i++)
     {
         BalanceHistory balance_history;
         Message msg;
 
-        while (receive(comm, i, &msg));
+        while (receive(pc, i, &msg));
 
         if (msg.s_header.s_type != BALANCE_HISTORY)
         {
-            return -1;
+            return ERROR_PARENT;
         }
 
         memcpy((void*)&balance_history, msg.s_payload, sizeof(char) * msg.s_header.s_payload_len);
@@ -143,75 +148,75 @@ int parent_handler(PipesCommunication* comm)
     }
 
     print_history(&all_history);
-    return 0;
+    return SUCCESS;
 }
 
 /** 子进程处理函数
  *
- * @param comm		管道管理器指针
+ * @param pc		管道管理器指针
  *
  * @return -1 不正确的消息类型, 0 正常返回.
  */
-int child_handler(PipesCommunication* comm)
+int child_handler(PipesCommunication* pc)
 {
-    BalanceState balance_state; //余额状态
-    BalanceHistory balance_history; //余额历史
-    size_t done_left = comm->total_ids - 2;
-    int stopped = false;
+    BalanceState bs; //余额状态
+    BalanceHistory bh; //余额历史
+    size_t done_left = pc->total_ids - 2;
+    int stopped = false; //停止标记
 
-    balance_history.s_id = comm->current_id;
+    bh.s_id = pc->current_id;
+    bs.s_balance = pc->balance;
+    bs.s_balance_pending_in = 0;
+    bs.s_time = 0;
 
-    balance_state.s_balance = comm->balance;
-    balance_state.s_balance_pending_in = 0;
-    balance_state.s_time = 0;
-
-    update_history(&balance_state, &balance_history, 0, 0, 0, 0);
+    update_history(&bs, &bh, 0, 0, 0, 0);
 
     // 发送并接受就绪消息
     increment_lamport_time();
-    send_all_proc_event_msg(comm, STARTED);
+    send_all_proc_event_msg(pc, STARTED);
     increment_lamport_time();
-    receive_all_msgs(comm, STARTED);
+    receive_all_msgs(pc, STARTED);
 
     // 发送转账，停止，完成消息
     while (done_left || !not_stopped)
     {
         Message msg;
 
-        while (receive_any(comm, &msg));
+        while (receive_any(pc, &msg));
 
-        if (msg.s_header.s_type == TRANSFER)
+        //fprintf(stdout,"child %d %s", getpid(),Name((msg.s_header.s_type))
+        switch (msg.s_header.s_type)
         {
-            transfer_message(comm, &msg, &balance_state, &balance_history);
-        }
-        else if (msg.s_header.s_type == STOP)
-        {
-            update_history(&balance_state, &balance_history, 0, msg.s_header.s_local_time, 1, 0);
-            send_all_proc_event_msg(comm, DONE);
+        case TRANSFER:
+            transfer_message(pc, &msg, &bs, &bh);
+            break;
+        case DONE:
+            update_history(&bs, &bh, 0, msg.s_header.s_local_time, 1, 0);
+            send_all_proc_event_msg(pc, DONE);
             stopped = true;
-        }
-        else if (msg.s_header.s_type == DONE)
-        {
-            update_history(&balance_state, &balance_history, 0, msg.s_header.s_local_time, 1, 0);
+            break;
+        case STOP:
+            update_history(&bs, &bh, 0, msg.s_header.s_local_time, 1, 0);
             done_left--;
+            break;
+        default:
+            return ERROR_CHILD;
+            break;
         }
-        else
-        {
-            return -1;
-        }
+
     }
 
-    log_received_all_done(comm->current_id); //接受其他进程的完成消息
+    log_received_all_done(pc->current_id); //接受其他进程的完成消息
 
     // 更新历史记录并发送给父进程
-    update_history(&balance_state, &balance_history, 0, 0, 1, 0);
-    send_balance_history(comm, PARENT_ID, &balance_history);
+    update_history(&bs, &bh, 0, 0, 1, 0);
+    send_balance_history(pc, PARENT_ID, &bh);
     return 0;
 }
 
 /**
  * 处理转账消息
- * @param comm		管道管理器指针
+ * @param pc		管道管理器指针
  * @param msg		转账消息
  * @param state		余额状态
  * @param history	余额历史记录

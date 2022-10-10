@@ -20,7 +20,7 @@ void log_init()
 /**
 * 释放日志
 */
-void log_destroy()
+void log_release()
 {
     fclose(pipes_log_f);
     fclose(events_log_f);
