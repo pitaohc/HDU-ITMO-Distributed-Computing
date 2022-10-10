@@ -9,5 +9,6 @@
 # gz file
 *.gz
 *.tar
+
 # executable file
 /pa[1-5]/pa[1-5]
