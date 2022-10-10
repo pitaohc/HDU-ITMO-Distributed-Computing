@@ -72,11 +72,11 @@ int main(int argc, char** argv)
 	}
 	
 	// 设置当前进程ID
-	current_proc_id = (fork_id == 0) i + 1 : PARENT_ID;
+	current_proc_id = (fork_id == 0) ? i + 1 : PARENT_ID;
 
 	
 	// 为进程设置管道fds  */
-	balance_t balance = atoi(argv[proc_id + 2]); //获得初始金额
+	balance_t balance = atoi(argv[current_proc_id + 2]); //获得初始金额
 	comm = communication_init(pipes, child_count + 1, current_proc_id, balance);
 	log_pipes(comm);
 	
@@ -174,7 +174,7 @@ int child_handler(PipesCommunication* comm)
     receive_all_msgs(comm, STARTED);
 	
 	// 发送转账，停止，完成消息
-	while(done_left || !not_stopped)
+	while(done_left || !stopped)
 	{
 		Message msg;
 		
