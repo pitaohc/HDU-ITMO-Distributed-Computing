@@ -11,7 +11,7 @@
 
 /** Set 0_NONBLOCK flag to fd
  * 
- * @param fd			File Descriptor
+ * @param fd			文件描述符
  *
  * @return -1 if can't get flags, -2 if can't set flags, 0 on success
  */
@@ -30,11 +30,11 @@ int set_nonblock(int pipe_id)
     return 0;
 }
 
-/** Open pipes fds
+/** 打开管道文件描述符
  * 
- * @param proc_count    Process count including parent process.
+ * @param proc_count    包含父进程的进程数量
  *
- * @return pointer to pipe fds array
+ * @return 管道文件描述符数组指针
  */
 int* pipes_init(size_t proc_count)
 {
@@ -68,13 +68,13 @@ int* pipes_init(size_t proc_count)
 	return pipes;
 }
 
-/** Init PipesCommunication
+/** 初始化管道通讯
  * 
- * @param pipes			Pointer to opened pipes fd
- * @param proc_count    Process count including parent process.
- * @param curr_proc		Current process local id
+ * @param pipes			管道文件描述符数组指针
+ * @param proc_count    包含父进程的进程数量
+ * @param curr_proc		当前进程本地ID
  *
- * @return pointer to PipesCommunication
+ * @return 管道通讯对象指针
  */
 PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id curr_proc, balance_t balance){
 	PipesCommunication* this = malloc(sizeof(PipesCommunication));;
@@ -87,7 +87,7 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
 	
 	memcpy(this->pipes, pipes + curr_proc * 2 * offset, sizeof(int) * offset * 2);
 	
-	/* Close unnecessary fds */
+	/* 关闭无用的文件描述符 */
 	for (i = 0; i < proc_count; i++)
 	{
 		if (i == curr_proc)
@@ -104,9 +104,9 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
 	return this;
 }
 
-/** Close all fds & free space
+/** 关闭所有文件描述符并释放资源
  * 
- * @param comm		Pointer to PipesCommunication
+ * @param comm		管道通讯对象指针
  */
 void communication_destroy(PipesCommunication* comm)
 {
@@ -119,12 +119,12 @@ void communication_destroy(PipesCommunication* comm)
 	free(comm);
 }
 
-/** Send event (STARTED / DONE) message to all processes
+/** 发送事件消息给所有进程
  * 
- * @param comm		Pointer to PipesCommunication
- * @param type		Message type: STARTED / DONE
+ * @param comm		管道通讯对象指针
+ * @param type		消息类型: STARTED / DONE
  *
- * @return -1 on incorrect type, -2 on internal error, -3 on sending message error, 0 on success
+ * @return -1 非法消息类型, -2 内部错误, -3 发送消息错误, 0 成功
  */
 int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
 	Message msg;
@@ -162,9 +162,9 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
 	return 0;
 }
 
-/** Send STOP message to all processes
+/** 发送停止消息给所有进程
  * 
- * @param comm		Pointer to PipesCommunication
+ * @param comm		管道通讯对象指针
  */
 void send_all_stop_msg(PipesCommunication* comm)
 {
@@ -177,11 +177,11 @@ void send_all_stop_msg(PipesCommunication* comm)
 	send_multicast(comm, &msg);
 }
 
-/** Send TRANSFER message
+/** 发送转账消息
  * 
- * @param comm		Pointer to PipesCommunication
- * @param dst 		Destination local_id
- * @param order 	Transfer Order information
+ * @param comm		管道通讯对象指针
+ * @param dst 		目标ID
+ * @param order 	账单信息
  */
 void send_transfer_msg(PipesCommunication* comm, local_id dst, TransferOrder* order){
 	Message msg;
@@ -195,10 +195,10 @@ void send_transfer_msg(PipesCommunication* comm, local_id dst, TransferOrder* or
 	while (send(comm, dst, &msg) < 0);
 }
 
-/** Send ACK message
+/** 发送ACK
  * 
- * @param comm		Pointer to PipesCommunication
- * @param dst 		Destination local_id
+ * @param comm		管道通讯对象指针
+ * @param dst 		目标ID
  */
 void send_ack_msg(PipesCommunication* comm, local_id dst){
 	Message msg;
@@ -210,11 +210,11 @@ void send_ack_msg(PipesCommunication* comm, local_id dst){
 	while (send(comm, dst, &msg) < 0);
 }
 
-/** Send Balance History
+/** 发送余额历史记录给父进程
  * 
- * @param comm		Pointer to PipesCommunication
- * @param dst 		Destination local_id
- * @param history	Balance History information
+ * @param comm		管道通讯对象指针
+ * @param dst 		目标ID
+ * @param history	余额历史信息
  */
 void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory* history)
 {
@@ -229,10 +229,10 @@ void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory
 	while (send(comm, dst, &msg) < 0);
 }
 
-/** Receive all messages
+/** 接收所有消息
  * 
- * @param comm		Pointer to PipesCommunication
- * @param type		Message Type
+ * @param comm		管道通讯对象指针
+ * @param type		消息类型
  */
 void receive_all_msgs(PipesCommunication* comm, MessageType type)
 {
