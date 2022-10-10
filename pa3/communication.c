@@ -15,13 +15,16 @@
  *
  * @return -1 if can't get flags, -2 if can't set flags, 0 on success
  */
-int set_nonblock(int pipe_id){
+int set_nonblock(int pipe_id)
+{
 	int flags = fcntl(pipe_id, F_GETFL);
-    if (flags == -1){
+    if (flags == -1)
+	{
         return -1;
     }
     flags = fcntl(pipe_id, F_SETFL, flags | O_NONBLOCK);
-    if (flags == -1){
+    if (flags == -1)
+	{
         return -2;
     }
     return 0;
@@ -33,20 +36,25 @@ int set_nonblock(int pipe_id){
  *
  * @return pointer to pipe fds array
  */
-int* pipes_init(size_t proc_count){
+int* pipes_init(size_t proc_count)
+{
 	size_t i, j;
 	size_t offset = proc_count - 1;
 	int* pipes = malloc(sizeof(int) * 2 * proc_count * (proc_count-1));
 	
-	for (i = 0; i < proc_count; i++){
-		for (j = 0; j < proc_count; j++){
+	for (i = 0; i < proc_count; i++)
+	{
+		for (j = 0; j < proc_count; j++)
+		{
 			int tmp_fd[2];
 			
-			if (i == j){
+			if (i == j)
+			{
 				continue;
 			}
 			
-			if (pipe(tmp_fd) < 0){
+			if (pipe(tmp_fd) < 0)
+			{
 				return (int*)NULL;
 			}
 			
@@ -80,11 +88,14 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
 	memcpy(this->pipes, pipes + curr_proc * 2 * offset, sizeof(int) * offset * 2);
 	
 	/* Close unnecessary fds */
-	for (i = 0; i < proc_count; i++){
-		if (i == curr_proc){
+	for (i = 0; i < proc_count; i++)
+	{
+		if (i == curr_proc)
+		{
 			continue;
 		}
-		for (j = 0; j < proc_count; j++){
+		for (j = 0; j < proc_count; j++)
+		{
 			close(pipes[i * offset * 2 + (i > j ? j : j - 1) * 2 + PIPE_READ_TYPE]);
 			close(pipes[i * offset * 2 + (i > j ? j : j - 1) * 2 + PIPE_WRITE_TYPE]);
 		}
@@ -97,9 +108,11 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
  * 
  * @param comm		Pointer to PipesCommunication
  */
-void communication_destroy(PipesCommunication* comm){
+void communication_destroy(PipesCommunication* comm)
+{
 	size_t i;
-	for (i = 0; i < comm->total_ids - 1; i++){
+	for (i = 0; i < comm->total_ids - 1; i++)
+	{
 		close(comm->pipes[i * 2 + PIPE_READ_TYPE]);
 		close(comm->pipes[i * 2 + PIPE_WRITE_TYPE]);
 	}
@@ -122,7 +135,8 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
     msg.s_header.s_type = type;
     msg.s_header.s_local_time = get_lamport_time();
 	
-	switch (type){
+	switch (type)
+	{
         case STARTED:
 			length = snprintf(buf, MAX_PAYLOAD_LEN, log_started_fmt, get_lamport_time(), comm->current_id, getpid(), getppid(), comm->balance);
 			break;
@@ -133,7 +147,8 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
 			return -1;
 	}
 		
-	if (length <= 0){
+	if (length <= 0)
+	{
 		return -2;
 	}
 	
@@ -151,7 +166,8 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type){
  * 
  * @param comm		Pointer to PipesCommunication
  */
-void send_all_stop_msg(PipesCommunication* comm){
+void send_all_stop_msg(PipesCommunication* comm)
+{
 	Message msg;
 	msg.s_header.s_magic = MESSAGE_MAGIC;
     msg.s_header.s_type = STOP;
@@ -200,7 +216,8 @@ void send_ack_msg(PipesCommunication* comm, local_id dst){
  * @param dst 		Destination local_id
  * @param history	Balance History information
  */
-void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory* history){
+void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory* history)
+{
 	Message msg;
 	msg.s_header.s_magic = MESSAGE_MAGIC;
     msg.s_header.s_type = BALANCE_HISTORY;
@@ -217,12 +234,15 @@ void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory
  * @param comm		Pointer to PipesCommunication
  * @param type		Message Type
  */
-void receive_all_msgs(PipesCommunication* comm, MessageType type){
+void receive_all_msgs(PipesCommunication* comm, MessageType type)
+{
 	Message msg;
 	local_id i;
 	
-	for (i = 1; i < comm->total_ids; i++){
-		if (i == comm->current_id){
+	for (i = 1; i < comm->total_ids; i++)
+	{
+		if (i == comm->current_id)
+		{
 			continue;
 		}
 		while (receive(comm, i, &msg) < 0);
@@ -230,7 +250,8 @@ void receive_all_msgs(PipesCommunication* comm, MessageType type){
 		set_lamport_time_from_msg(&msg);
 	}
 	
-	switch (type){
+	switch (type)
+	{
         case STARTED:
             log_received_all_started(comm->current_id);
             break;

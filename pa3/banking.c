@@ -13,7 +13,8 @@
 * @param dst 目标进程id
 * @param amount 金额
 */
-void transfer(void * parent_data, local_id src, local_id dst, balance_t amount){
+void transfer(void * parent_data, local_id src, local_id dst, balance_t amount)
+{
 	Message msg;
 	PipesCommunication* parent = (PipesCommunication*) parent_data;
 	TransferOrder order;

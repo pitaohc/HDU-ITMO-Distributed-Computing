@@ -4,7 +4,8 @@
 #include "ipc.h"
 #include "banking.h"
 
-typedef struct{
+typedef struct
+{
 	int* pipes;
 	local_id current_id;
 	size_t total_ids;

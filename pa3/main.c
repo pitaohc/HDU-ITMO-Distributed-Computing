@@ -10,10 +10,13 @@
 #include "banking.h"
 #include "ltime.h"
 
-/* define return status */
+/* 定义主函数返回类型 */
 #define ERROR_INVALID_ARGUMENTS -1
 #define ERROR_FORK -2
 #define SUCCESS 0
+
+#define true 1
+#define false 0
 
 int get_proc_count(int argc, char** argv);
 
@@ -24,7 +27,7 @@ int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state
 void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix);
 
 /**
- * @return -1 on invalid arguments, -2 on fork error, 0 on success
+ * @return -1 无效参数, -2 创建子进程错误, 0 正常结束
  */
 int main(int argc, char** argv)
 {
@@ -39,7 +42,7 @@ int main(int argc, char** argv)
 	// 检查参数
 	if (argc < 4 || (child_count = get_proc_count(argc, argv)) == -1)
 	{
-		fprintf(stderr, "Usage: %s -p X y1 y2 ... yX\n", argv[0]);
+		//fprintf(stderr, "Usage: %s -p X y1 y2 ... yX\n", argv[0]);
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	
@@ -109,7 +112,6 @@ int main(int argc, char** argv)
 int parent_handler(PipesCommunication* comm)
 {
 	AllHistory all_history; //总体记录
-	local_id i;
 	
 	all_history.s_history_len = comm->total_ids - 1; //等于子进程数量
 	
@@ -124,13 +126,15 @@ int parent_handler(PipesCommunication* comm)
     receive_all_msgs(comm, DONE);
 	
 	/* 输出历史记录 */
-	for (i = 1; i < comm->total_ids; i++){
+	for (local_id i = 1; i < comm->total_ids; i++)
+	{
 		BalanceHistory balance_history;
 		Message msg;
 		
 		while(receive(comm, i, &msg));
 		
-		if (msg.s_header.s_type != BALANCE_HISTORY){
+		if (msg.s_header.s_type != BALANCE_HISTORY)
+		{
 			return -1;
 		}
 		
@@ -153,7 +157,7 @@ int child_handler(PipesCommunication* comm)
 	BalanceState balance_state; //余额状态
     BalanceHistory balance_history; //余额历史
 	size_t done_left = comm->total_ids - 2;
-	int not_stopped = 1;
+	int stopped = false;
 
     balance_history.s_id = comm->current_id;
 	
@@ -170,24 +174,29 @@ int child_handler(PipesCommunication* comm)
     receive_all_msgs(comm, STARTED);
 	
 	// 发送转账，停止，完成消息
-	while(done_left || not_stopped){
+	while(done_left || !not_stopped)
+	{
 		Message msg;
 		
         while (receive_any(comm, &msg));
 		
-		if (msg.s_header.s_type == TRANSFER){
+		if (msg.s_header.s_type == TRANSFER)
+		{
 			transfer_message(comm, &msg, &balance_state, &balance_history);
 		}
-		else if (msg.s_header.s_type == STOP){
+		else if (msg.s_header.s_type == STOP)
+		{
 			update_history(&balance_state, &balance_history, 0, msg.s_header.s_local_time, 1, 0);
 			send_all_proc_event_msg(comm, DONE);
-			not_stopped = 0;
+			stopped = true;
 		}
-		else if (msg.s_header.s_type == DONE){
+		else if (msg.s_header.s_type == DONE)
+		{
 			update_history(&balance_state, &balance_history, 0, msg.s_header.s_local_time, 1, 0);
 			done_left--;
 		}
-		else{
+		else
+		{
 			return -1;
 		}
 	}
@@ -248,28 +257,34 @@ int transfer_message(PipesCommunication* comm, Message* msg, BalanceState* state
  * @param inc				增加时间标记
  * @param fix				Fix flag
  */
-void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix){
+void update_history(BalanceState* state, BalanceHistory* history, balance_t amount, timestamp_t timestamp_msg, char inc, char fix)
+{
 	static timestamp_t prev_time = 0;
     timestamp_t curr_time = get_lamport_time() < timestamp_msg ? timestamp_msg : get_lamport_time();
 	timestamp_t i;
 	
-	if (inc){
+	if (inc)
+	{
 		curr_time++;
 	}
 	set_lamport_time(curr_time);
-	if (fix){
+	if (fix)
+	{
 		timestamp_msg--;
 	}
 
     history->s_history_len = curr_time + 1;
 	
-	for (i = prev_time; i < curr_time; i++){
+	for (i = prev_time; i < curr_time; i++)
+	{
 		state->s_time = i;
 		history->s_history[i] = *state;
 	}
 	
-	if (amount > 0){
-		for (i = timestamp_msg; i < curr_time; i++){
+	if (amount > 0)
+	{
+		for (i = timestamp_msg; i < curr_time; i++)
+		{
 			history->s_history[i].s_balance_pending_in += amount;
 		}
 	}
@@ -287,9 +302,11 @@ void update_history(BalanceState* state, BalanceHistory* history, balance_t amou
  *
  * @return -1 on error, any other values on success.
  */
-int get_proc_count(int argc, char** argv){
+int get_proc_count(int argc, char** argv)
+{
 	int proc_count;
-	if (!strcmp(argv[1], "-p") && (proc_count = atoi(argv[2])) == (argc - 3)){
+	if (!strcmp(argv[1], "-p") && (proc_count = atoi(argv[2])) == (argc - 3))
+	{
 		return proc_count;
 	}
 	return -1;
