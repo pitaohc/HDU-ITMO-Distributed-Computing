@@ -1,36 +1,36 @@
-#include "banking.h"
+ï»¿#include "banking.h"
 #include "communication.h"
-#include "log3pa.h"
-#include "ltime.h"
+#include "logger.h"
+#include "lamport_time.h"
 
 
 /**
-* ×ªÕËº¯Êı
-* ´¦Àí×ªÕËÊÂÎñ
-* 
-* @param parent_data ¸¸½ø³ÌÊı¾İÖ¸Õë
-* @param src Ô´½ø³Ìid
-* @param dst Ä¿±ê½ø³Ìid
-* @param amount ½ğ¶î
+* è½¬è´¦å‡½æ•°
+* å¤„ç†è½¬è´¦äº‹åŠ¡
+*
+* @param parent_data çˆ¶è¿›ç¨‹æ•°æ®æŒ‡é’ˆ
+* @param src æºè¿›ç¨‹id
+* @param dst ç›®æ ‡è¿›ç¨‹id
+* @param amount é‡‘é¢
 */
-void transfer(void * parent_data, local_id src, local_id dst, balance_t amount)
+void transfer(void* parent_data, local_id src, local_id dst, balance_t amount)
 {
-	Message msg;
-	PipesCommunication* parent = (PipesCommunication*) parent_data;
-	TransferOrder order;
-	order.s_src = src;
+    Message msg;
+    PipesCommunication* parent = (PipesCommunication*)parent_data;
+    TransferOrder order;
+    order.s_src = src;
     order.s_dst = dst;
     order.s_amount = amount;
-	//1. Ôö¼ÓÊ±¼ä´Á
-	increment_lamport_time();
-	//2. ·¢ËÍ×ªÕËÇëÇóÏûÏ¢
+    //1. å¢åŠ æ—¶é—´æˆ³
+    increment_lamport_time();
+    //2. å‘é€è½¬è´¦è¯·æ±‚æ¶ˆæ¯
     send_transfer_msg(parent, src, &order);
-	//3. ¼ÇÂ¼×ª³ö
-	log_transfer_out(src, dst, amount);
-	//4. ·¢ËÍ×ªÕË½ÓÊÜÏûÏ¢
+    //3. è®°å½•è½¬å‡º
+    log_transfer_out(src, dst, amount);
+    //4. å‘é€è½¬è´¦æ¥å—æ¶ˆæ¯
     while (receive(parent, dst, &msg) < 0 || msg.s_header.s_type != ACK);
-	//5. ´ÓÏûÏ¢ÖĞÉèÖÃÊ±¼ä
-	set_lamport_time_from_msg(&msg);
-	//6. ¼ÇÂ¼×ªÈë
-	log_transfer_in(src, dst, amount);		
+    //5. ä»æ¶ˆæ¯ä¸­è®¾ç½®æ—¶é—´
+    set_lamport_time_from_msg(&msg);
+    //6. è®°å½•è½¬å…¥
+    log_transfer_in(src, dst, amount);
 }

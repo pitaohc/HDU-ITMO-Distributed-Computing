@@ -1,5 +1,5 @@
-#ifndef __IFMO_DISTRIBUTED_CLASS_LOG3PA__H
-#define __IFMO_DISTRIBUTED_CLASS_LOG3PA__H
+﻿#ifndef __IFMO_DISTRIBUTED_CLASS_LOGGER__H
+#define __IFMO_DISTRIBUTED_CLASS_LOGGER__H
 
 #include "communication.h"
 #include "banking.h"
