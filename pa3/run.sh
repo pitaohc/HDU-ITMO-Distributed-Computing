@@ -3,3 +3,5 @@ export LD_PRELOAD="/home/dc/projects/ITMO-distributed_computing_ans/pa3/lib64/li
 ./pa3 $*
 
 rm *.o
+cd ..
+tar -czvf  pa3.tar.gz pa3
