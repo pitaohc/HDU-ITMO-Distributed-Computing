@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 
     // 后处理
     log_destroy();//释放日志文件
-    communication_destroy(pc);//释放管道
+    communication_release(pc);//释放管道
     return 0;
 }
 
