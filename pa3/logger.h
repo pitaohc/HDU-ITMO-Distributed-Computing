@@ -1,9 +1,9 @@
-#ifndef __IFMO_DISTRIBUTED_CLASS_LOG3PA__H
-#define __IFMO_DISTRIBUTED_CLASS_LOG3PA__H
+﻿#ifndef __IFMO_DISTRIBUTED_CLASS_LOGGER__H
+#define __IFMO_DISTRIBUTED_CLASS_LOGGER__H
 
+#include "ipc.h"
 #include "communication.h"
 #include "banking.h"
-#include "ipc.h"
 
 
 void log_init();
