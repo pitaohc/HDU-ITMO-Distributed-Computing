@@ -20,10 +20,10 @@
 
 int get_children_count(int argc, char** argv);
 
-int parent_handler(PipesCommunication* pc);
-int child_handler(PipesCommunication* pc);
+int parent_handler(PipeManager* pm);
+int child_handler(PipeManager* pm);
 
-int transfer_amount(PipesCommunication* pc, Message* msg, BalanceState* bs, BalanceHistory* bh);
+int transfer_amount(PipeManager* pm, Message* msg, BalanceState* bs, BalanceHistory* bh);
 void update_balance_history(BalanceState* bs, BalanceHistory* bh, balance_t amount, timestamp_t timestamp_msg, char inc, char fix);
 
 /**
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
     pid_t* children;
     pid_t fork_id;
     local_id current_proc_id;
-    PipesCommunication* pc;
+    PipeManager* pm;
 
     // 检查参数
     if (argc < 4 || (child_count = get_children_count(argc, argv)) == -1)
@@ -77,13 +77,13 @@ int main(int argc, char** argv)
 
     // 为进程设置管道管理器  */
     balance_t balance = atoi(argv[current_proc_id + 2]); //获得初始金额
-    pc = communication_init(pipes, child_count + 1, current_proc_id, balance);
-    log_pipes(pc);
+    pm = communication_init(pipes, child_count + 1, current_proc_id, balance);
+    log_pipes(pm);
 
     // 进入工作函数
     if (current_proc_id == PARENT_ID)
     {
-        parent_handler(pc);
+        parent_handler(pm);
         for (i = 0; i < child_count; i++)
         { // 如果是父进程，等待所有子进程结束
             waitpid(children[i], NULL, 0);
@@ -91,13 +91,13 @@ int main(int argc, char** argv)
     }
     else
     {
-        child_handler(pc);
+        child_handler(pm);
     }
 
 
     // 后处理
     log_destroy();//释放日志文件
-    communication_release(pc);//释放管道
+    communication_release(pm);//释放管道
     return 0;
 }
 
@@ -105,33 +105,33 @@ int main(int argc, char** argv)
  * 父进程处理函数
  * 负责接收消息，账单，输出历史记录
  *
- * @param pc		管道管理器指针
+ * @param pm		管道管理器指针
  *
  * @return -1 不正确的消息类型, 0 正常返回.
  */
-int parent_handler(PipesCommunication* pc)
+int parent_handler(PipeManager* pm)
 {
     AllHistory all_history; //总体记录
 
-    all_history.s_history_len = pc->total_ids - 1; //等于子进程数量
+    all_history.s_history_len = pm->total_ids - 1; //等于子进程数量
 
-    receive_all_msgs(pc, STARTED); //等待其他进程的就绪消息
+    receive_all_msgs(pm, STARTED); //等待其他进程的就绪消息
 
     /* 处理账单 */
-    bank_robbery(pc, pc->total_ids - 1);
+    bank_robbery(pm, pm->total_ids - 1);
 
     /* 处理完成，等待子进程结束 */
     increase_lamport_time();
-    send_all_stop_msg(pc);
-    receive_all_msgs(pc, DONE);
+    send_all_stop_msg(pm);
+    receive_all_msgs(pm, DONE);
 
     /* 输出历史记录 */
-    for (local_id i = 1; i < pc->total_ids; i++)
+    for (local_id i = 1; i < pm->total_ids; i++)
     {
         BalanceHistory balance_history;
         Message msg;
 
-        while (receive(pc, i, &msg));
+        while (receive(pm, i, &msg));
 
         if (msg.s_header.s_type != BALANCE_HISTORY)
         {
@@ -148,20 +148,20 @@ int parent_handler(PipesCommunication* pc)
 
 /** 子进程处理函数
  *
- * @param pc		管道管理器指针
+ * @param pm		管道管理器指针
  *
  * @return -1 不正确的消息类型, 0 正常返回.
  */
-int child_handler(PipesCommunication* pc)
+int child_handler(PipeManager* pm)
 {
     BalanceState bs; //余额状态
     BalanceHistory bh; //余额历史
-    size_t done_left = pc->total_ids - 2;
+    size_t done_left = pm->total_ids - 2;
     int stopped = false;
 
-    bh.s_id = pc->current_id;
+    bh.s_id = pm->current_id;
 
-    bs.s_balance = pc->balance;
+    bs.s_balance = pm->balance;
     bs.s_balance_pending_in = 0;
     bs.s_time = 0;
 
@@ -169,25 +169,25 @@ int child_handler(PipesCommunication* pc)
 
     // 发送并接受就绪消息
     increase_lamport_time();
-    send_all_proc_event_msg(pc, STARTED);
+    send_all_proc_event_msg(pm, STARTED);
     increase_lamport_time();
-    receive_all_msgs(pc, STARTED);
+    receive_all_msgs(pm, STARTED);
 
     // 发送转账，停止，完成消息
     while (done_left || !stopped)
     {
         Message msg;
 
-        while (receive_any(pc, &msg));
+        while (receive_any(pm, &msg));
 
         if (msg.s_header.s_type == TRANSFER)
         {
-            transfer_amount(pc, &msg, &bs, &bh);
+            transfer_amount(pm, &msg, &bs, &bh);
         }
         else if (msg.s_header.s_type == STOP)
         {
             update_balance_history(&bs, &bh, 0, msg.s_header.s_local_time, 1, 0);
-            send_all_proc_event_msg(pc, DONE);
+            send_all_proc_event_msg(pm, DONE);
             stopped = true;
         }
         else if (msg.s_header.s_type == DONE)
@@ -201,24 +201,24 @@ int child_handler(PipesCommunication* pc)
         }
     }
 
-    log_received_all_done(pc->current_id); //接受其他进程的完成消息
+    log_received_all_done(pm->current_id); //接受其他进程的完成消息
 
     // 更新历史记录并发送给父进程
     update_balance_history(&bs, &bh, 0, 0, 1, 0);
-    send_balance_history(pc, PARENT_ID, &bh);
+    send_balance_history(pm, PARENT_ID, &bh);
     return 0;
 }
 
 /**
  * 处理转账消息
- * @param pc		管道管理器指针
+ * @param pm		管道管理器指针
  * @param msg		转账消息
  * @param bs		余额状态
  * @param history	余额历史记录
  *
  * @return -1 非法地址, -2 发送消息错误, 0 成功.
  */
-int transfer_amount(PipesCommunication* pc, Message* msg, BalanceState* bs, BalanceHistory* bh)
+int transfer_amount(PipeManager* pm, Message* msg, BalanceState* bs, BalanceHistory* bh)
 {
     TransferOrder order;
     memcpy(&order, msg->s_payload, sizeof(char) * msg->s_header.s_payload_len);
@@ -226,20 +226,20 @@ int transfer_amount(PipesCommunication* pc, Message* msg, BalanceState* bs, Bala
     update_balance_history(bs, bh, 0, 0, 1, 0);
 
     // 处理支出Transfer request */
-    if (pc->current_id == order.s_src)
+    if (pm->current_id == order.s_src)
     {
         update_balance_history(bs, bh, -order.s_amount, msg->s_header.s_local_time, 1, 0);
         update_balance_history(bs, bh, 0, 0, 1, 0);
-        send_transfer_msg(pc, order.s_dst, &order);
-        pc->balance -= order.s_amount;
+        send_transfer_msg(pm, order.s_dst, &order);
+        pm->balance -= order.s_amount;
     }
     /* 处理收入Transfer income */
-    else if (pc->current_id == order.s_dst)
+    else if (pm->current_id == order.s_dst)
     {
         update_balance_history(bs, bh, order.s_amount, msg->s_header.s_local_time, 1, 1);
         increase_lamport_time();
-        send_ack_msg(pc, PARENT_ID);
-        pc->balance += order.s_amount;
+        send_ack_msg(pm, PARENT_ID);
+        pm->balance += order.s_amount;
     }
     else
     {

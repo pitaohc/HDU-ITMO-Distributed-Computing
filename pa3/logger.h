@@ -9,7 +9,7 @@
 void log_init();
 void log_destroy();
 
-void log_pipes(const PipesCommunication* comm);
+void log_pipes(const PipeManager* pm);
 
 void log_started(const local_id id, const balance_t balance);
 void log_received_all_started(const local_id id);
