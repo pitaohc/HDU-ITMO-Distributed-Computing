@@ -18,16 +18,16 @@
 int set_nonblock(int pipe_id)
 {
     int flags = fcntl(pipe_id, F_GETFL);
-    if (flags == -1)
+    if (!flags)
     {
-        return -1;
+        return ERROR_SET_NONBLOCK_NO_FLAGS;
     }
     flags = fcntl(pipe_id, F_SETFL, flags | O_NONBLOCK);
-    if (flags == -1)
+    if (!flags)
     {
-        return -2;
+        return ERROR_SET_NONBLOCK_NO_SET;
     }
-    return 0;
+    return RESULT_SET_NONBLOCK_SUCCESS;
 }
 
 /** 打开管道文件描述符
@@ -38,13 +38,12 @@ int set_nonblock(int pipe_id)
  */
 int* pipes_init(size_t proc_count)
 {
-    size_t i, j;
     size_t offset = proc_count - 1;
     int* pipes = malloc(sizeof(int) * 2 * proc_count * (proc_count - 1));
 
-    for (i = 0; i < proc_count; i++)
+    for (size_t i = 0; i < proc_count; i++)
     {
-        for (j = 0; j < proc_count; j++)
+        for (size_t j = 0; j < proc_count; j++)
         {
             int tmp_fd[2];
 
@@ -106,27 +105,27 @@ PipesCommunication* communication_init(int* pipes, size_t proc_count, local_id c
 
 /** 关闭所有文件描述符并释放资源
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  */
-void communication_destroy(PipesCommunication* comm)
+void communication_release(PipesCommunication* pc)
 {
     size_t i;
-    for (i = 0; i < comm->total_ids - 1; i++)
+    for (i = 0; i < pc->total_ids - 1; i++)
     {
-        close(comm->pipes[i * 2 + PIPE_READ_TYPE]);
-        close(comm->pipes[i * 2 + PIPE_WRITE_TYPE]);
+        close(pc->pipes[i * 2 + PIPE_READ_TYPE]);
+        close(pc->pipes[i * 2 + PIPE_WRITE_TYPE]);
     }
-    free(comm);
+    free(pc);
 }
 
 /** 发送事件消息给所有进程
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  * @param type		消息类型: STARTED / DONE
  *
  * @return -1 非法消息类型, -2 内部错误, -3 发送消息错误, 0 成功
  */
-int send_all_proc_event_msg(PipesCommunication* comm, MessageType type) {
+int send_all_proc_event_msg(PipesCommunication* pc, MessageType type) {
     Message msg;
     uint16_t length = 0;
     char buf[MAX_PAYLOAD_LEN];
@@ -138,10 +137,10 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type) {
     switch (type)
     {
     case STARTED:
-        length = snprintf(buf, MAX_PAYLOAD_LEN, log_started_fmt, get_lamport_time(), comm->current_id, getpid(), getppid(), comm->balance);
+        length = snprintf(buf, MAX_PAYLOAD_LEN, log_started_fmt, get_lamport_time(), pc->current_id, getpid(), getppid(), pc->balance);
         break;
     case DONE:
-        length = snprintf(buf, MAX_PAYLOAD_LEN, log_done_fmt, get_lamport_time(), comm->current_id, comm->balance);
+        length = snprintf(buf, MAX_PAYLOAD_LEN, log_done_fmt, get_lamport_time(), pc->current_id, pc->balance);
         break;
     default:
         return -1;
@@ -155,97 +154,94 @@ int send_all_proc_event_msg(PipesCommunication* comm, MessageType type) {
     msg.s_header.s_payload_len = length;
     memcpy(msg.s_payload, buf, sizeof(char) * length);
 
-    send_multicast(comm, &msg);
+    send_multicast(pc, &msg);
 
-    type == STARTED ? log_started(comm->current_id, comm->balance) : log_done(comm->current_id, comm->balance);
+    type == STARTED ? log_started(pc->current_id, pc->balance) : log_done(pc->current_id, pc->balance);
 
     return 0;
 }
 
 /** 发送停止消息给所有进程
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  */
-void send_all_stop_msg(PipesCommunication* comm)
+void send_all_stop_msg(PipesCommunication* pc)
 {
     Message msg;
     msg.s_header.s_magic = MESSAGE_MAGIC;
+    msg.s_header.s_payload_len = 0;
     msg.s_header.s_type = STOP;
     msg.s_header.s_local_time = get_lamport_time();
-    msg.s_header.s_payload_len = 0;
 
-    send_multicast(comm, &msg);
+    send_multicast(pc, &msg);
 }
 
 /** 发送转账消息
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  * @param dst 		目标ID
  * @param order 	账单信息
  */
-void send_transfer_msg(PipesCommunication* comm, local_id dst, TransferOrder* order) {
+void send_transfer_msg(PipesCommunication* pc, local_id dst, TransferOrder* order) {
     Message msg;
     msg.s_header.s_magic = MESSAGE_MAGIC;
+    msg.s_header.s_payload_len = sizeof(TransferOrder);
     msg.s_header.s_type = TRANSFER;
     msg.s_header.s_local_time = get_lamport_time();
-    msg.s_header.s_payload_len = sizeof(TransferOrder);
 
     memcpy(msg.s_payload, order, msg.s_header.s_payload_len);
 
-    while (send(comm, dst, &msg) < 0);
+    while (send(pc, dst, &msg) < 0);
 }
 
 /** 发送ACK
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  * @param dst 		目标ID
  */
-void send_ack_msg(PipesCommunication* comm, local_id dst) {
+void send_ack_msg(PipesCommunication* pc, local_id dst) {
     Message msg;
     msg.s_header.s_magic = MESSAGE_MAGIC;
     msg.s_header.s_type = ACK;
     msg.s_header.s_local_time = get_lamport_time();
     msg.s_header.s_payload_len = 0;
 
-    while (send(comm, dst, &msg) < 0);
+    while (send(pc, dst, &msg) < 0);
 }
 
 /** 发送余额历史记录给父进程
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  * @param dst 		目标ID
  * @param history	余额历史信息
  */
-void send_balance_history(PipesCommunication* comm, local_id dst, BalanceHistory* history)
+void send_balance_history(PipesCommunication* pc, local_id dst, BalanceHistory* bh)
 {
     Message msg;
     msg.s_header.s_magic = MESSAGE_MAGIC;
+    msg.s_header.s_payload_len = sizeof(BalanceHistory);
     msg.s_header.s_type = BALANCE_HISTORY;
     msg.s_header.s_local_time = get_lamport_time();
-    msg.s_header.s_payload_len = sizeof(BalanceHistory);
-
-    memcpy(msg.s_payload, history, msg.s_header.s_payload_len);
-
-    while (send(comm, dst, &msg) < 0);
+    memcpy(msg.s_payload, bh, msg.s_header.s_payload_len);
+    while (send(pc, dst, &msg) < 0);
 }
 
 /** 接收所有消息
  *
- * @param comm		管道通讯对象指针
+ * @param pc		管道通讯对象指针
  * @param type		消息类型
  */
-void receive_all_msgs(PipesCommunication* comm, MessageType type)
+void receive_all_msgs(PipesCommunication* pc, MessageType type)
 {
     Message msg;
-    local_id i;
 
-    for (i = 1; i < comm->total_ids; i++)
+    for (local_id i = 1; i < pc->total_ids; i++)
     {
-        if (i == comm->current_id)
+        if (i == pc->current_id)
         {
             continue;
         }
-        while (receive(comm, i, &msg) < 0);
+        while (receive(pc, i, &msg) < 0);
 
         set_lamport_time_from_msg(&msg);
     }
@@ -253,10 +249,10 @@ void receive_all_msgs(PipesCommunication* comm, MessageType type)
     switch (type)
     {
     case STARTED:
-        log_received_all_started(comm->current_id);
+        log_received_all_started(pc->current_id);
         break;
     case DONE:
-        log_received_all_done(comm->current_id);
+        log_received_all_done(pc->current_id);
         break;
     default:
         break;

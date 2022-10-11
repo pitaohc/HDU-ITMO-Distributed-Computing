@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     current_proc_id = (fork_id == 0) ? i + 1 : PARENT_ID;
 
 
-    // 为进程设置管道fds  */
+    // 为进程设置管道管理器  */
     balance_t balance = atoi(argv[current_proc_id + 2]); //获得初始金额
     pc = communication_init(pipes, child_count + 1, current_proc_id, balance);
     log_pipes(pc);
