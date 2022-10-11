@@ -37,7 +37,7 @@ void log_destroy()
 /**
 * 记录管道创建
 */
-void log_pipes(PipesCommunication* comm)
+void log_pipes(const PipesCommunication* comm)
 {
     if (pipes_log_file == NULL)
     {
@@ -65,7 +65,7 @@ void log_pipes(PipesCommunication* comm)
 /**
 * 记录初始余额
 */
-void log_started(local_id id, balance_t balance)
+void log_started(const local_id id, const balance_t balance)
 {
     if (events_log_file == NULL)
     {
@@ -81,7 +81,7 @@ void log_started(local_id id, balance_t balance)
 /**
 * 记录接收到所有进程就绪消息
 */
-void log_received_all_started(local_id id)
+void log_received_all_started(const local_id id)
 {
     if (events_log_file == NULL)
     {
@@ -95,7 +95,7 @@ void log_received_all_started(local_id id)
 /**
 * 记录子进程完成
 */
-void log_done(local_id id, balance_t balance)
+void log_done(const local_id id, const balance_t balance)
 {
     if (events_log_file == NULL)
     {
@@ -109,7 +109,7 @@ void log_done(local_id id, balance_t balance)
 /**
 * 记录接受所有进程完成
 */
-void log_received_all_done(local_id id)
+void log_received_all_done(const local_id id)
 {
     if (events_log_file == NULL)
     {
@@ -123,7 +123,7 @@ void log_received_all_done(local_id id)
 /**
 * 记录转出
 */
-void log_transfer_out(local_id from, local_id dst, balance_t amount)
+void log_transfer_out(const local_id from, const local_id dst, const balance_t amount)
 {
     if (events_log_file == NULL)
     {
@@ -137,7 +137,7 @@ void log_transfer_out(local_id from, local_id dst, balance_t amount)
 /**
 * 记录转入
 */
-void log_transfer_in(local_id from, local_id dst, balance_t amount)
+void log_transfer_in(const local_id from, const local_id dst, const balance_t amount)
 {
     if (events_log_file == NULL)
     {
