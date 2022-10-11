@@ -25,8 +25,7 @@ timestamp_t set_lamport_time(const timestamp_t new_lamport_time)
 timestamp_t set_lamport_time_from_msg(const Message* msg)
 {
     set_lamport_time(msg->s_header.s_local_time);
-    increase_lamport_time();
-    return lamport_time;
+    return increment_lamport_time();
 }
 
 /**
