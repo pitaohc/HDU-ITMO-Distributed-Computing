@@ -37,7 +37,7 @@ void log_destroy()
 /**
 * 记录管道创建
 */
-void log_pipes(const PipesCommunication* comm)
+void log_pipes(const PipeManager * pm)
 {
     if (pipes_log_file == NULL)
     {
@@ -47,17 +47,17 @@ void log_pipes(const PipesCommunication* comm)
 
     size_t i;
 
-    fprintf(pipes_log_file, "Process %d pipes:\n", comm->current_id);
+    fprintf(pipes_log_file, "Process %d pipes:\n", pm->current_id);
 
-    for (i = 0; i < comm->total_ids; i++)
+    for (i = 0; i < pm->total_ids; i++)
     {
-        if (i == comm->current_id)
+        if (i == pm->current_id)
         {
             continue;
         }
 
-        fprintf(pipes_log_file, "Process %ld\tRead pipe %d\tWrite pipe%d \n", i, comm->pipes[(i < comm->current_id ? i : i - 1) * 2 + PIPE_READ_TYPE],
-            comm->pipes[(i < comm->current_id ? i : i - 1) * 2 + PIPE_WRITE_TYPE]);
+        fprintf(pipes_log_file, "Process %ld\tRead pipe %d\tWrite pipe%d \n", i, pm->pipes[(i < pm->current_id ? i : i - 1) * 2 + PIPE_READ_TYPE],
+            pm->pipes[(i < pm->current_id ? i : i - 1) * 2 + PIPE_WRITE_TYPE]);
     }
     fprintf(pipes_log_file, "\n");
 }

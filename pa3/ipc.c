@@ -1,4 +1,4 @@
-#include "ipc.h"
+﻿#include "ipc.h"
 #include "communication.h"
  
 #include <unistd.h>
@@ -16,7 +16,7 @@ int8_t get_index(int8_t x, int8_t id)
 */
 int send(void * self, local_id dst, const Message * msg)
 {
-	PipesCommunication* from = (PipesCommunication*) self;
+	PipeManager* from = (PipeManager*) self;
 	
 	if (dst == from->current_id)
 	{
@@ -35,7 +35,7 @@ int send(void * self, local_id dst, const Message * msg)
 */
 int send_multicast(void * self, const Message * msg)
 {
-	PipesCommunication* from = (PipesCommunication*) self;
+	PipeManager* from = (PipeManager*) self;
 	local_id i;
 	
 	for (i = 0; i < from->total_ids; i++)
@@ -54,20 +54,20 @@ int send_multicast(void * self, const Message * msg)
 */
 int receive(void * self, local_id from, Message * msg)
 {
-	PipesCommunication* this = (PipesCommunication*) self;
+	PipeManager* pm = (PipeManager*) self;
 	
-	if (from == this->current_id)
+	if (from == pm->current_id)
 	{
 		return -1;
 	}
 	/* Read Header */
-	if (read(this->pipes[get_index(from, this->current_id) * 2 + PIPE_READ_TYPE], msg, sizeof(MessageHeader)) < (int)sizeof(MessageHeader))
+	if (read(pm->pipes[get_index(from, pm->current_id) * 2 + PIPE_READ_TYPE], msg, sizeof(MessageHeader)) < (int)sizeof(MessageHeader))
 	{
 		return -2;
 	}
 	
 	/* Read Body */
-	if (read(this->pipes[get_index(from, this->current_id) * 2 + PIPE_READ_TYPE], ((char*) msg) + sizeof(MessageHeader), msg->s_header.s_payload_len) < 0)
+	if (read(pm->pipes[get_index(from, pm->current_id) * 2 + PIPE_READ_TYPE], ((char*) msg) + sizeof(MessageHeader), msg->s_header.s_payload_len) < 0)
 	{
 		return -3;
 	}
@@ -79,17 +79,17 @@ int receive(void * self, local_id from, Message * msg)
 */
 int receive_any(void * self, Message * msg)
 {
-	PipesCommunication* this = (PipesCommunication*) self;
+	PipeManager* pm = (PipeManager*) self;
 	local_id i;
 	
-	for (i = 0; i < this->total_ids; i++)
+	for (i = 0; i < pm->total_ids; i++)
 	{
-		if (i == this->current_id)
+		if (i == pm->current_id)
 		{
 			continue;
 		}
 		
-		if (!receive(this, i, msg))
+		if (!receive(pm, i, msg))
 		{
 			return 0;
 		}
