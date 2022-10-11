@@ -1,7 +1,7 @@
 #include "communication.h"
 #include "logger.h"
 #include "pa2345.h"
-#include "ltime.h"
+#include "lamporttime.h"
 
 #include <stdio.h>
 #include <unistd.h>

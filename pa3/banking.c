@@ -22,7 +22,7 @@ void transfer(void* parent_data, local_id src, local_id dst, balance_t amount)
     order.s_dst = dst;
     order.s_amount = amount;
     //1. 增加时间戳
-    increment_lamport_time();
+    increase_lamport_time();
     //2. 发送转账请求消息
     send_transfer_msg(parent, src, &order);
     //3. 记录转出
