@@ -8,7 +8,7 @@
 #include "banking.h"
 #include "communication.h"
 #include "logger.h"
-#include "ltime.h"
+#include "lamporttime.h"
 
 /* 定义主函数返回类型 */
 #define ERROR_INVALID_ARGUMENTS -1
@@ -121,7 +121,7 @@ int parent_handler(PipesCommunication* pc)
     bank_robbery(pc, pc->total_ids - 1);
 
     /* 处理完成，等待子进程结束 */
-    increment_lamport_time();
+    increase_lamport_time();
     send_all_stop_msg(pc);
     receive_all_msgs(pc, DONE);
 
@@ -168,9 +168,9 @@ int child_handler(PipesCommunication* pc)
     update_balance_history(&bs, &bh, 0, 0, 0, 0);
 
     // 发送并接受就绪消息
-    increment_lamport_time();
+    increase_lamport_time();
     send_all_proc_event_msg(pc, STARTED);
-    increment_lamport_time();
+    increase_lamport_time();
     receive_all_msgs(pc, STARTED);
 
     // 发送转账，停止，完成消息
@@ -237,7 +237,7 @@ int transfer_amount(PipesCommunication* pc, Message* msg, BalanceState* bs, Bala
     else if (pc->current_id == order.s_dst)
     {
         update_balance_history(bs, bh, order.s_amount, msg->s_header.s_local_time, 1, 1);
-        increment_lamport_time();
+        increase_lamport_time();
         send_ack_msg(pc, PARENT_ID);
         pc->balance += order.s_amount;
     }
